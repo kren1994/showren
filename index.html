@@ -105,7 +105,6 @@
             border: 1px solid #eee;
         }
 
-        /* --- スマホ・小型iPad向け設定 (画面幅 1199px 以下) --- */
         @media (max-width: 1199px) {
             body { padding: 0; }
             .container {
@@ -126,7 +125,6 @@
             }
         }
 
-        /* --- PC・大型タブレット向け設定 (画面幅 1200px 以上) --- */
         @media (min-width: 1200px) {
             .container { flex-wrap: nowrap; }
             .left-pane { width: 610px; flex: 0 0 auto; } 
@@ -146,12 +144,12 @@
             <canvas id="boardCanvas"></canvas>
         </div>
         <div class="board-controls">
-            <button onclick="goToStart()">|&lt;</button>
             <button onclick="goToPrevBranch()">&lt;&lt;</button>
             <button onclick="goBack()">&lt;</button>
             <button onclick="goNext()">&gt;</button>
             <button onclick="goToNextBranch()">&gt;&gt;</button>
-            <button onclick="goToEnd()">&gt;|</button>
+            <button id="toggleLabelsBtn" onclick="toggleLabels()">A</button>
+            <button id="toggleCoordsBtn" onclick="toggleCoords()">座標</button>
             <button class="load-btn" onclick="document.getElementById('fileInput').click()" style="background:#e0f0ff; border-color:#b0d0ff; color:#0055aa;">読込</button>
             <input type="file" id="fileInput" accept=".json" style="display:none;">
         </div>
@@ -169,11 +167,12 @@
 
 <script>
     const BOARD_SIZE = 15;
-    const CELL_SIZE = 40; 
-    const MARGIN_L = 35; 
-    const MARGIN_R = 15; 
-    const MARGIN_T = 25; 
-    const MARGIN_B = 35; 
+    
+    let CELL_SIZE = 40; 
+    let MARGIN_L = 35; 
+    let MARGIN_R = 15; 
+    let MARGIN_T = 25; 
+    let MARGIN_B = 35; 
 
     const CANVAS_W = CELL_SIZE * (BOARD_SIZE - 1) + MARGIN_L + MARGIN_R;
     const CANVAS_H = CELL_SIZE * (BOARD_SIZE - 1) + MARGIN_T + MARGIN_B;
@@ -181,6 +180,9 @@
     const canvas = document.getElementById('boardCanvas');
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
+
+    let showLabels = true;
+    let showCoords = true;
 
     function setupCanvas() {
         canvas.width = CANVAS_W * dpr;
@@ -200,7 +202,7 @@
 
     function initGame() {
         tree = {
-            'root': { id: 'root', parent: null, children: [], x: null, y: null, color: 0, comment: '', moveNumber: 0, lastSelectedChild: null }
+            'root': { id: 'root', parent: null, children: [], x: null, y: null, color: 0, comment: '', moveNumber: 0, lastSelectedChild: null, labels: {} }
         };
         currentNodeId = 'root';
         nextNodeId = 1;
@@ -239,11 +241,34 @@
         updateUI();
     }
 
+    function toggleLabels() {
+        showLabels = !showLabels;
+        document.getElementById('toggleLabelsBtn').style.background = showLabels ? "#f9f9f9" : "#ddd";
+        updateUI();
+    }
+
+    function toggleCoords() {
+        showCoords = !showCoords;
+        document.getElementById('toggleCoordsBtn').style.background = showCoords ? "#f9f9f9" : "#ddd";
+        
+        if (showCoords) {
+            CELL_SIZE = 40;
+            MARGIN_L = 35; MARGIN_R = 15; MARGIN_T = 25; MARGIN_B = 35;
+        } else {
+            const minMargin = 20;
+            const availableW = CANVAS_W - minMargin * 2;
+            const availableH = CANVAS_H - minMargin * 2;
+            CELL_SIZE = Math.min(availableW, availableH) / (BOARD_SIZE - 1);
+            MARGIN_L = (CANVAS_W - CELL_SIZE * (BOARD_SIZE - 1)) / 2;
+            MARGIN_R = MARGIN_L;
+            MARGIN_T = (CANVAS_H - CELL_SIZE * (BOARD_SIZE - 1)) / 2;
+            MARGIN_B = MARGIN_T;
+        }
+        updateUI();
+    }
+
     function getScreenPos(x, y) {
-        return { 
-            sx: MARGIN_L + x * CELL_SIZE, 
-            sy: MARGIN_T + y * CELL_SIZE 
-        };
+        return { sx: MARGIN_L + x * CELL_SIZE, sy: MARGIN_T + y * CELL_SIZE };
     }
 
     function drawBoard() {
@@ -269,13 +294,15 @@
             ctx.fill();
         }
 
-        ctx.fillStyle = '#333';
-        ctx.font = '14px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        for (let i = 0; i < BOARD_SIZE; i++) {
-            ctx.fillText(String.fromCharCode(65 + i), MARGIN_L + i * CELL_SIZE, CANVAS_H - 15);
-            ctx.fillText((BOARD_SIZE - i).toString(), 15, MARGIN_T + i * CELL_SIZE);
+        if (showCoords) {
+            ctx.fillStyle = '#333';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                ctx.fillText(String.fromCharCode(65 + i), MARGIN_L + i * CELL_SIZE, CANVAS_H - 15);
+                ctx.fillText((BOARD_SIZE - i).toString(), 15, MARGIN_T + i * CELL_SIZE);
+            }
         }
     }
 
@@ -286,8 +313,13 @@
             path.unshift(curr);
             curr = tree[curr.parent];
         }
+
+        let stonePositions = {}; 
+        let currentNode = tree[currentNodeId];
+
         for (let node of path) {
             let { sx, sy } = getScreenPos(node.x, node.y);
+            stonePositions[`${node.x},${node.y}`] = node.color;
             ctx.beginPath();
             ctx.arc(sx, sy, CELL_SIZE * 0.45, 0, Math.PI * 2);
             ctx.fillStyle = node.color === 1 ? '#000' : '#fff';
@@ -295,20 +327,48 @@
             ctx.lineWidth = 1;
             ctx.strokeStyle = '#333';
             ctx.stroke();
-
             ctx.fillStyle = node.color === 1 ? '#fff' : '#000';
-            ctx.font = 'bold 12px Arial';
+            ctx.font = `bold ${Math.floor(CELL_SIZE*0.35)}px Arial`;
             ctx.fillText(node.moveNumber.toString(), sx, sy);
         }
         
-        let currentNode = tree[currentNodeId];
         for (let childId of currentNode.children) {
             let child = tree[childId];
+            if (showLabels && currentNode.labels && currentNode.labels[`${child.x},${child.y}`]) {
+                continue;
+            }
             let { sx, sy } = getScreenPos(child.x, child.y);
             ctx.beginPath();
             ctx.fillStyle = 'rgba(30, 144, 255, 0.9)'; 
             ctx.arc(sx, sy, 5, 0, Math.PI * 2);
             ctx.fill();
+        }
+
+        if (showLabels && currentNode.labels) {
+            for (let key in currentNode.labels) {
+                let [lx, ly] = key.split(',').map(Number);
+                let text = currentNode.labels[key];
+                if (!text) continue;
+                let { sx, sy } = getScreenPos(lx, ly);
+                let colorAtPos = stonePositions[key];
+                
+                ctx.font = `bold ${Math.floor(CELL_SIZE*0.48)}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                // ホワイトの縁取り（ハロ）を描画
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3;
+                ctx.lineJoin = 'round';
+                ctx.strokeText(text, sx, sy);
+
+                // テキスト本体の描画
+                if (colorAtPos === 1) ctx.fillStyle = '#fff9c4'; // 黒石：パステルイエロー（ゴールド調）
+                else if (colorAtPos === 2) ctx.fillStyle = '#b71c1c'; // 白石：ディープガーネット（深い赤）
+                else ctx.fillStyle = '#1a237e'; // 盤面：インディゴ（濃紺）
+                
+                ctx.fillText(text, sx, sy);
+            }
         }
     }
 
@@ -334,8 +394,21 @@
         const mouseY = (e.clientY - rect.top);
         const x = Math.round((mouseX - MARGIN_L) / CELL_SIZE);
         const y = Math.round((mouseY - MARGIN_T) / CELL_SIZE);
-
         if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) return;
+
+        if (e.ctrlKey) {
+            let node = tree[currentNodeId];
+            if (!node.labels) node.labels = {};
+            let currentText = node.labels[`${x},${y}`] || "";
+            let newText = prompt("交点テキストを入力:", currentText);
+            if (newText !== null) {
+                pushUndo();
+                if (newText === "") delete node.labels[`${x},${y}`];
+                else node.labels[`${x},${y}`] = newText;
+                updateUI();
+            }
+            return;
+        }
 
         let currentNode = tree[currentNodeId];
         for (let childId of currentNode.children) {
@@ -359,7 +432,8 @@
         tree[newNodeId] = {
             id: newNodeId, parent: currentNodeId, children: [],
             x: x, y: y, color: currentNode.moveNumber % 2 === 0 ? 1 : 2,
-            comment: "", moveNumber: currentNode.moveNumber + 1, lastSelectedChild: null
+            comment: "", moveNumber: currentNode.moveNumber + 1, lastSelectedChild: null,
+            labels: {} 
         };
         tree[currentNodeId].children.push(newNodeId);
         tree[currentNodeId].lastSelectedChild = newNodeId; 
@@ -376,7 +450,6 @@
         tree[currentNodeId].comment = e.target.value;
     });
 
-    function goToStart() { currentNodeId = 'root'; updateUI(); }
     function goBack() { 
         if (tree[currentNodeId].parent) { 
             currentNodeId = tree[currentNodeId].parent; 
@@ -386,14 +459,6 @@
     function goNext() {
         let next = getPreferredChild(currentNodeId);
         if (next) { currentNodeId = next; updateUI(); }
-    }
-    function goToEnd() {
-        let next = getPreferredChild(currentNodeId);
-        while (next) {
-            currentNodeId = next;
-            next = getPreferredChild(currentNodeId);
-        }
-        updateUI();
     }
     function goToPrevBranch() {
         let curr = tree[currentNodeId];
@@ -426,23 +491,11 @@
                 else commentArea.focus();
                 return;
             }
-            if (key === 'z') {
-                if (!isTextArea) { e.preventDefault(); undo(); }
-                return;
-            }
-            if (key === 's') {
-                e.preventDefault();
-                saveKifu();
-                return;
-            }
-            if (key === 'o') {
-                e.preventDefault();
-                document.getElementById('fileInput').click();
-                return;
-            }
+            if (key === 'z') { if (!isTextArea) { e.preventDefault(); undo(); } return; }
+            if (key === 's') { e.preventDefault(); saveKifu(); return; }
+            if (key === 'o') { e.preventDefault(); document.getElementById('fileInput').click(); return; }
         }
         if (isTextArea) return;
-        
         switch(e.key) {
             case 'h': e.preventDefault(); goToPrevBranch(); break; 
             case 'j': e.preventDefault(); goBack(); break;          
@@ -478,12 +531,9 @@
                     tree = data.tree;
                     currentNodeId = data.currentNodeId || 'root';
                     nextNodeId = data.nextNodeId || 1;
-                    undoStack = []; 
-                    updateUI();
+                    undoStack = []; updateUI();
                 }
-            } catch (err) {
-                alert("ファイルの読み込みに失敗しました。");
-            }
+            } catch (err) { alert("ファイルの読み込みに失敗しました。"); }
         };
         reader.readAsText(file);
         e.target.value = '';
