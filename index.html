@@ -368,6 +368,7 @@
         reader.readAsText(file); e.target.value = '';
     });
     canvas.addEventListener('contextmenu', e => { e.preventDefault(); goBack(); });
+    document.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
     initGame();
 </script>
 </body>
