@@ -44,6 +44,8 @@
         .board-container {
             position: relative;
             width: 100%;
+            display: flex;
+            justify-content: center; 
         }
         canvas {
             background-color: #e3c482;
@@ -53,12 +55,14 @@
             max-width: 100%; 
             height: auto;
             display: block;
+            margin: 0 auto;
             touch-action: none; 
         }
         .board-controls {
             display: flex;
             gap: 5px;
             width: 100%;
+            box-sizing: border-box;
         }
         .board-controls button {
             flex: 1;
@@ -71,30 +75,23 @@
             font-weight: bold;
             touch-action: manipulation; 
         }
-        .board-controls button:hover {
-            background: #e9e9e9;
-        }
-        .load-btn {
-            background: #e0f0ff !important;
-            border-color: #b0d0ff !important;
-            color: #0055aa;
-        }
         textarea {
             width: 100%;
             flex-grow: 1;
             min-height: 150px;
             resize: vertical;
             padding: 10px;
-            font-size: 16px;
+            font-size: 16px; 
             border: 1px solid #ccc;
             border-radius: 4px;
             box-sizing: border-box;
             outline: none;
-        }
-        /* 読み取り専用時の背景色を少し変える */
-        textarea[readonly] {
-            background-color: #fcfcfc;
+            background-color: #fff;
             color: #333;
+        }
+        textarea:focus {
+            border-color: #3080ff;
+            box-shadow: 0 0 5px rgba(48, 128, 255, 0.5);
         }
         .guide {
             font-size: 13px;
@@ -106,44 +103,30 @@
             border: 1px solid #eee;
         }
 
-        /* --- スマホ・iPad向け設定 (画面幅 1199px 以下) --- */
         @media (max-width: 1199px) {
-            body {
-                padding: 0;
-            }
+            body { padding: 0; }
             .container {
-                padding: 5px;
+                padding: 0; 
                 border-radius: 0;
                 box-shadow: none;
-                gap: 10px;
+                gap: 5px;
+                width: 100%;
             }
-            .guide {
-                display: none; /* ガイド非表示 */
-            }
-            .left-pane, .right-pane {
-                max-width: 100%;
-            }
+            .guide { display: none; }
+            .left-pane, .right-pane { max-width: 100%; width: 100%; }
+            .board-controls { padding: 0 5px; }
             textarea {
-                min-height: 250px; /* 1.5倍程度に高く設定 */
+                min-height: 210px;
+                margin: 0 5px 10px 5px;
+                width: calc(100% - 10px);
             }
         }
 
-        /* --- PC向け設定 (画面幅 1200px 以上) --- */
         @media (min-width: 1200px) {
-            .container {
-                flex-wrap: nowrap;
-            }
-            .left-pane {
-                width: 564px; /* 右余白を削った分、少し幅を調整 */
-                flex: 0 0 auto;
-            }
-            .right-pane {
-                width: 320px;
-                flex: 0 0 auto;
-            }
-            textarea {
-                min-height: 300px;
-            }
+            .container { flex-wrap: nowrap; }
+            .left-pane { width: 554px; flex: 0 0 auto; }
+            .right-pane { width: 320px; flex: 0 0 auto; }
+            textarea { min-height: 300px; }
         }
     </style>
 </head>
@@ -161,7 +144,7 @@
             <button onclick="goNext()">&gt;</button>
             <button onclick="goToNextBranch()">&gt;&gt;</button>
             <button onclick="goToEnd()">&gt;|</button>
-            <button class="load-btn" onclick="document.getElementById('fileInput').click()">読込</button>
+            <button class="load-btn" onclick="document.getElementById('fileInput').click()" style="background:#e0f0ff; border-color:#b0d0ff; color:#0055aa;">読込</button>
             <input type="file" id="fileInput" accept=".json" style="display:none;">
         </div>
     </div>
@@ -172,19 +155,18 @@
             ・<b>Ctrl+S</b> で保存 / <b>Ctrl+O</b> で読込<br>
             ・<b>Ctrl+[</b> でコメント入力と盤面を行き来
         </div>
-        <textarea id="commentArea" placeholder="ここに局面のコメントを表示..."></textarea>
+        <textarea id="commentArea" placeholder="ここに局面のコメントを入力..."></textarea>
     </div>
 </div>
 
 <script>
     const BOARD_SIZE = 15;
     const CELL_SIZE = 36;
-    const MARGIN_L = 40; // 左側（数字座標用）
-    const MARGIN_R = 20; // 右側（余白を半分に）
-    const MARGIN_T = 20; 
-    const MARGIN_B = 40; // 下側（アルファベット座標用）
+    const MARGIN_L = 35; 
+    const MARGIN_R = 15; 
+    const MARGIN_T = 25; // 石（半径16.2px）が見切れないよう 15px から 25px に増加
+    const MARGIN_B = 35; 
 
-    // キャンバスのサイズ計算
     const CANVAS_W = CELL_SIZE * (BOARD_SIZE - 1) + MARGIN_L + MARGIN_R;
     const CANVAS_H = CELL_SIZE * (BOARD_SIZE - 1) + MARGIN_T + MARGIN_B;
     
@@ -193,17 +175,6 @@
     canvas.height = CANVAS_H;
     const ctx = canvas.getContext('2d');
     const commentArea = document.getElementById('commentArea');
-
-    // スマホ・iPadならコメントを読み取り専用にする
-    function checkDevice() {
-        if (window.innerWidth <= 1199) {
-            commentArea.readOnly = true;
-        } else {
-            commentArea.readOnly = false;
-        }
-    }
-    window.addEventListener('resize', checkDevice);
-    checkDevice();
 
     let tree = {};
     let currentNodeId = 'root';
@@ -266,10 +237,8 @@
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 1;
         for (let i = 0; i < BOARD_SIZE; i++) {
-            // 縦線
             ctx.moveTo(MARGIN_L + i * CELL_SIZE, MARGIN_T);
             ctx.lineTo(MARGIN_L + i * CELL_SIZE, MARGIN_T + (BOARD_SIZE - 1) * CELL_SIZE);
-            // 横線
             ctx.moveTo(MARGIN_L, MARGIN_T + i * CELL_SIZE);
             ctx.lineTo(MARGIN_L + (BOARD_SIZE - 1) * CELL_SIZE, MARGIN_T + i * CELL_SIZE);
         }
@@ -286,9 +255,7 @@
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         for (let i = 0; i < BOARD_SIZE; i++) {
-            // 下側アルファベット (A-O)
             ctx.fillText(String.fromCharCode(65 + i), MARGIN_L + i * CELL_SIZE, CANVAS_H - 15);
-            // 左側数字 (15-1)
             ctx.fillText((BOARD_SIZE - i).toString(), 15, MARGIN_T + i * CELL_SIZE);
         }
     }
@@ -367,9 +334,6 @@
             if (n.x === x && n.y === y) return;
             tempId = n.parent;
         }
-
-        // 読み取り専用モード（スマホ等）の時は新しい手の追加を制限しない（検討用）
-        // もし閲覧のみにしたい場合はここで return する
         
         pushUndo();
         let newNodeId = 'node_' + (nextNodeId++);
@@ -390,9 +354,7 @@
     });
 
     commentArea.addEventListener('input', (e) => {
-        if (!commentArea.readOnly) {
-            tree[currentNodeId].comment = e.target.value;
-        }
+        tree[currentNodeId].comment = e.target.value;
     });
 
     function goToStart() { currentNodeId = 'root'; updateUI(); }
@@ -442,7 +404,7 @@
             if (e.key === '[') {
                 e.preventDefault();
                 if (isTextArea) commentArea.blur();
-                else if (!commentArea.readOnly) commentArea.focus();
+                else commentArea.focus();
                 return;
             }
             if (key === 'z') {
