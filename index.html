@@ -97,7 +97,6 @@
         setupCanvas(); updateUI();
     }
 
-    // i番目の変換 (Canonical -> Physical)
     function transform(x, y, i) {
         const last = BOARD_SIZE - 1;
         switch(i) {
@@ -106,7 +105,6 @@
         }
     }
 
-    // 逆変換用インデックス取得
     function getInverseTransform(i) { return [0, 3, 2, 1, 4, 5, 6, 7][i]; }
 
     function getCanonicalInfo(nodeId) {
@@ -171,7 +169,6 @@
         }
 
         if (showHints) {
-            // カノニカル座標 -> 物理座標 (bestI を使用)
             if (data.nextMoves) {
                 for (let key in data.nextMoves) {
                     let [cx, cy] = key.split(',').map(Number);
@@ -188,7 +185,7 @@
                     let sx = MARGIN_L + rx * CELL_SIZE, sy = MARGIN_T + ry * CELL_SIZE;
                     ctx.font = `bold ${Math.floor(CELL_SIZE*0.43)}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                     ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)'; ctx.lineWidth = 2.5; ctx.strokeText(data.labels[key], sx, sy);
-                    ctx.fillStyle = '#1a237e'; ctx.fillText(data.labels[key], sx, sy);
+                    ctx.fillStyle = '#555'; ctx.fillText(data.labels[key], sx, sy);
                 }
             }
         }
@@ -208,7 +205,6 @@
 
         if (e.ctrlKey) {
             if (!posDb[key]) posDb[key] = { comment: "", labels: {}, nextMoves: {} };
-            // 物理座標 -> カノニカル座標 (invI を使用)
             const [cx, cy] = transform(x, y, invI);
             let currentText = posDb[key].labels[`${cx},${cy}`] || "";
             let newText = prompt("交点テキストを入力:", currentText);
@@ -227,7 +223,6 @@
         pushUndo();
         if (!posDb[key]) posDb[key] = { comment: "", labels: {}, nextMoves: {} };
         if (!posDb[key].nextMoves) posDb[key].nextMoves = {};
-        // 物理座標 -> カノニカル座標 (invI を使用)
         const [cx, cy] = transform(x, y, invI);
         posDb[key].nextMoves[`${cx},${cy}`] = true;
 
@@ -257,12 +252,37 @@
         while (t) { c = tree[t]; if (c.children.length > 1 || c.children.length === 0) { currentNodeId = c.id; updateUI(); return; } t = c.lastSelectedChild || (c.children.length > 0 ? c.children[0] : null); }
     }
     function undo() { if (undoStack.length === 0) return; const s = JSON.parse(undoStack.pop()); tree = s.tree; posDb = s.posDb; currentNodeId = s.currentNodeId; nextNodeId = s.nextNodeId; updateUI(); }
+    
     function deleteCurrentNode() {
         if (currentNodeId === 'root') return;
-        pushUndo(); const tid = currentNodeId, pid = tree[tid].parent;
+        pushUndo();
+        const tid = currentNodeId;
+        const nodeToRemove = tree[tid];
+        const pid = nodeToRemove.parent;
+
+        // 親局面のposDbからこの遷移を削除
+        const { key, index } = getCanonicalInfo(pid);
+        const invI = getInverseTransform(index);
+        const [cx, cy] = transform(nodeToRemove.x, nodeToRemove.y, invI);
+        if (posDb[key]) {
+            if (posDb[key].nextMoves) delete posDb[key].nextMoves[`${cx},${cy}`];
+            if (posDb[key].labels) delete posDb[key].labels[`${cx},${cy}`];
+        }
+
+        // ツリーとposDbデータを再帰的に削除
         tree[pid].children = tree[pid].children.filter(id => id !== tid);
-        const del = (id) => { tree[id].children.forEach(del); delete tree[id]; }; del(tid); currentNodeId = pid; updateUI();
+        const del = (id) => {
+            const { key: dKey } = getCanonicalInfo(id);
+            delete posDb[dKey]; // この局面のコメント・ラベル・次の手を全削除
+            tree[id].children.forEach(del);
+            delete tree[id];
+        };
+        del(tid);
+
+        currentNodeId = pid;
+        updateUI();
     }
+
     document.addEventListener('keydown', (e) => {
         if (document.activeElement === commentArea) { if (e.ctrlKey && e.key === '[') { e.preventDefault(); commentArea.blur(); } return; }
         if (e.ctrlKey || e.metaKey) {
@@ -272,8 +292,10 @@
             else if (k === 'o') { e.preventDefault(); document.getElementById('fileInput').click(); } return;
         }
         switch(e.key) {
-            case 'h': e.preventDefault(); goToPrevBranch(); break; case 'j': e.preventDefault(); goBack(); break;
-            case 'k': e.preventDefault(); goNext(); break; case 'l': e.preventDefault(); goToNextBranch(); break;
+            case 'h': e.preventDefault(); goToPrevBranch(); break; 
+            case 'j': e.preventDefault(); goBack(); break;
+            case 'k': e.preventDefault(); goNext(); break; 
+            case 'l': e.preventDefault(); goToNextBranch(); break;
             case 'ArrowLeft': goBack(); break; case 'ArrowRight': goNext(); break;
             case 'ArrowUp': goToPrevBranch(); break; case 'ArrowDown': goToNextBranch(); break;
             case 'Delete': deleteCurrentNode(); break;
