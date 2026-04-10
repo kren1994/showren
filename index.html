@@ -97,15 +97,23 @@
         setupCanvas(); updateUI();
     }
 
-    function transform(x, y, i) {
+    // カノニカル座標(cx,cy)を物理座標(px,py)へ変換
+    function transform(cx, cy, i) {
         const last = BOARD_SIZE - 1;
         switch(i) {
-            case 0: return [x, y]; case 1: return [y, last-x]; case 2: return [last-x, last-y]; case 3: return [last-y, x];
-            case 4: return [last-x, y]; case 5: return [x, last-y]; case 6: return [y, x]; case 7: return [last-y, last-x];
+            case 0: return [cx, cy]; case 1: return [cy, last-cx]; case 2: return [last-cx, last-cy]; case 3: return [last-cy, cx];
+            case 4: return [last-cx, cy]; case 5: return [cx, last-cy]; case 6: return [cy, cx]; case 7: return [last-cy, last-cx];
         }
     }
 
-    function getInverseTransform(i) { return [0, 3, 2, 1, 4, 5, 6, 7][i]; }
+    // 物理座標(px,py)をカノニカル座標(cx,cy)へ戻す逆変換
+    function inverseTransform(px, py, i) {
+        const last = BOARD_SIZE - 1;
+        switch(i) {
+            case 0: return [px, py]; case 1: return [last-py, px]; case 2: return [last-px, last-py]; case 3: return [py, last-px];
+            case 4: return [last-px, py]; case 5: return [px, last-py]; case 6: return [py, px]; case 7: return [last-py, last-px];
+        }
+    }
 
     function getCanonicalInfo(nodeId) {
         let grid = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0));
@@ -172,17 +180,17 @@
             if (data.nextMoves) {
                 for (let key in data.nextMoves) {
                     let [cx, cy] = key.split(',').map(Number);
-                    let [rx, ry] = transform(cx, cy, bestI);
+                    let [px, py] = transform(cx, cy, bestI);
                     if (data.labels && data.labels[`${cx},${cy}`]) continue;
                     ctx.beginPath(); ctx.fillStyle = 'rgba(128, 128, 128, 0.6)'; 
-                    ctx.arc(MARGIN_L + rx * CELL_SIZE, MARGIN_T + ry * CELL_SIZE, 5, 0, Math.PI * 2); ctx.fill();
+                    ctx.arc(MARGIN_L + px * CELL_SIZE, MARGIN_T + py * CELL_SIZE, 5, 0, Math.PI * 2); ctx.fill();
                 }
             }
             if (data.labels) {
                 for (let key in data.labels) {
                     let [cx, cy] = key.split(',').map(Number);
-                    let [rx, ry] = transform(cx, cy, bestI);
-                    let sx = MARGIN_L + rx * CELL_SIZE, sy = MARGIN_T + ry * CELL_SIZE;
+                    let [px, py] = transform(cx, cy, bestI);
+                    let sx = MARGIN_L + px * CELL_SIZE, sy = MARGIN_T + py * CELL_SIZE;
                     ctx.font = `bold ${Math.floor(CELL_SIZE*0.43)}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                     ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)'; ctx.lineWidth = 2.5; ctx.strokeText(data.labels[key], sx, sy);
                     ctx.fillStyle = '#555'; ctx.fillText(data.labels[key], sx, sy);
@@ -197,15 +205,16 @@
         const rect = canvas.getBoundingClientRect();
         const scaleX = LOGICAL_W / rect.width, scaleY = LOGICAL_H / rect.height;
         const mouseX = (e.clientX - rect.left) * scaleX, mouseY = (e.clientY - rect.top) * scaleY;
-        const x = Math.round((mouseX - MARGIN_L) / CELL_SIZE), y = Math.round((mouseY - MARGIN_T) / CELL_SIZE);
-        if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) return;
+        const px = Math.round((mouseX - MARGIN_L) / CELL_SIZE), py = Math.round((mouseY - MARGIN_T) / CELL_SIZE);
+        if (px < 0 || px >= BOARD_SIZE || py < 0 || py >= BOARD_SIZE) return;
 
         const { key, index } = getCanonicalInfo(currentNodeId);
-        const invI = getInverseTransform(index);
+        // 物理(px,py)から基準(cx,cy)へ変換して保存
+        const [cx, cy] = inverseTransform(px, py, index);
 
         if (e.ctrlKey) {
             if (!posDb[key]) posDb[key] = { comment: "", labels: {}, nextMoves: {} };
-            const [cx, cy] = transform(x, y, invI);
+            if (!posDb[key].labels) posDb[key].labels = {};
             let currentText = posDb[key].labels[`${cx},${cy}`] || "";
             let newText = prompt("交点テキストを入力:", currentText);
             if (newText !== null) {
@@ -216,18 +225,17 @@
         }
 
         let node = tree[currentNodeId];
-        for (let cid of node.children) { if (tree[cid].x === x && tree[cid].y === y) { node.lastSelectedChild = cid; currentNodeId = cid; updateUI(); return; } }
+        for (let cid of node.children) { if (tree[cid].x === px && tree[cid].y === py) { if (!posDb[key]) posDb[key] = { comment: "", labels: {}, nextMoves: {} }; if (!posDb[key].nextMoves) posDb[key].nextMoves = {}; posDb[key].nextMoves[`${cx},${cy}`] = true; node.lastSelectedChild = cid; currentNodeId = cid; updateUI(); return; } }
         let temp = currentNodeId;
-        while (temp !== 'root') { if (tree[temp].x === x && tree[temp].y === y) return; temp = tree[temp].parent; }
+        while (temp !== 'root') { if (tree[temp].x === px && tree[temp].y === py) return; temp = tree[temp].parent; }
         
         pushUndo();
         if (!posDb[key]) posDb[key] = { comment: "", labels: {}, nextMoves: {} };
         if (!posDb[key].nextMoves) posDb[key].nextMoves = {};
-        const [cx, cy] = transform(x, y, invI);
         posDb[key].nextMoves[`${cx},${cy}`] = true;
 
         let nid = 'node_' + (nextNodeId++);
-        tree[nid] = { id: nid, parent: currentNodeId, children: [], x, y, color: node.moveNumber % 2 === 0 ? 1 : 2, moveNumber: node.moveNumber + 1 };
+        tree[nid] = { id: nid, parent: currentNodeId, children: [], x: px, y: py, color: node.moveNumber % 2 === 0 ? 1 : 2, moveNumber: node.moveNumber + 1 };
         node.children.push(nid); node.lastSelectedChild = nid; currentNodeId = nid; updateUI();
     });
 
@@ -260,25 +268,23 @@
         const nodeToRemove = tree[tid];
         const pid = nodeToRemove.parent;
 
-        // 親局面のposDbからこの遷移を削除
-        const { key, index } = getCanonicalInfo(pid);
-        const invI = getInverseTransform(index);
-        const [cx, cy] = transform(nodeToRemove.x, nodeToRemove.y, invI);
-        if (posDb[key]) {
-            if (posDb[key].nextMoves) delete posDb[key].nextMoves[`${cx},${cy}`];
-            if (posDb[key].labels) delete posDb[key].labels[`${cx},${cy}`];
+        // 親局面の「次の手」リストから削除
+        const { key: pKey, index: pIndex } = getCanonicalInfo(pid);
+        const [cx, cy] = inverseTransform(nodeToRemove.x, nodeToRemove.y, pIndex);
+        if (posDb[pKey] && posDb[pKey].nextMoves) {
+            delete posDb[pKey].nextMoves[`${cx},${cy}`];
         }
 
-        // ツリーとposDbデータを再帰的に削除
-        tree[pid].children = tree[pid].children.filter(id => id !== tid);
+        // 削除対象局面以降のposDbデータを再帰的に削除
         const del = (id) => {
             const { key: dKey } = getCanonicalInfo(id);
-            delete posDb[dKey]; // この局面のコメント・ラベル・次の手を全削除
+            delete posDb[dKey];
             tree[id].children.forEach(del);
             delete tree[id];
         };
         del(tid);
 
+        tree[pid].children = tree[pid].children.filter(id => id !== tid);
         currentNodeId = pid;
         updateUI();
     }
