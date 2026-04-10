@@ -27,7 +27,8 @@
         .ctrl-right { display: flex; gap: 5px; justify-content: flex-end; }
         .board-controls button {
             padding: 12px 14px; border: 1px solid #ccc; background: #f9f9f9;
-            border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; touch-action: manipulation; 
+            border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; touch-action: manipulation;
+            white-space: nowrap;
         }
         .board-controls button:hover { background: #e9e9e9; }
         textarea {
@@ -37,6 +38,9 @@
         .hidden-hint { color: transparent !important; caret-color: transparent !important; }
         .hidden-hint::placeholder { color: transparent !important; }
         .guide { font-size: 13px; color: #666; line-height: 1.5; background: #f9f9fb; padding: 10px; border-radius: 4px; border: 1px solid #eee; }
+        @media (min-width: 600px) and (max-width: 1199px) {
+            .ctrl-center button { padding: 12px 22px; }
+        }
         @media (max-width: 1199px) {
             body { padding: 0; } .container { padding: 0; border-radius: 0; box-shadow: none; gap: 5px; width: 100%; }
             .guide { display: none; } textarea { min-height: 210px; margin: 0 auto 10px; width: 100%; max-width: 610px; line-height: 1.45; }
