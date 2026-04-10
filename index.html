@@ -19,6 +19,7 @@
         canvas {
             background-color: #e3c482; border-radius: 4px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
             cursor: pointer; display: block; margin: 0 auto; touch-action: none; 
+            max-width: 100%; height: auto !important;
         }
         .board-controls { display: flex; gap: 5px; width: 100%; box-sizing: border-box; }
         .board-controls button {
@@ -50,7 +51,7 @@
         <div class="board-container"><canvas id="boardCanvas"></canvas></div>
         <div class="board-controls">
             <button class="load-btn" onclick="document.getElementById('fileInput').click()" style="background:#e0f0ff; border-color:#b0d0ff; color:#0055aa;">読込</button>
-            <div style="flex: 1;"></div> 
+            <div style="flex: 0.5;"></div> 
             <button onclick="goToPrevBranch()">&lt;&lt;</button>
             <button onclick="goBack()">&lt;</button>
             <button onclick="goNext()">&gt;</button>
@@ -73,7 +74,7 @@
 <script>
     const BOARD_SIZE = 15;
     let CELL_SIZE = 40, MARGIN_L = 35, MARGIN_R = 15, MARGIN_T = 25, MARGIN_B = 35; 
-    const CANVAS_W = 610, CANVAS_H = 620; 
+    const LOGICAL_W = 610, LOGICAL_H = 620; 
 
     const canvas = document.getElementById('boardCanvas');
     const ctx = canvas.getContext('2d');
@@ -85,9 +86,8 @@
     let showHints = true, showCoords = true;
 
     function setupCanvas() {
-        canvas.width = CANVAS_W * dpr; canvas.height = CANVAS_H * dpr;
-        canvas.style.maxWidth = CANVAS_W + 'px'; canvas.style.width = '100%';
-        canvas.style.height = 'auto'; canvas.style.aspectRatio = `${CANVAS_W} / ${CANVAS_H}`;
+        canvas.width = LOGICAL_W * dpr; canvas.height = LOGICAL_H * dpr;
+        canvas.style.width = LOGICAL_W + 'px'; canvas.style.height = LOGICAL_H + 'px';
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
@@ -97,6 +97,7 @@
         setupCanvas(); updateUI();
     }
 
+    // i番目の変換 (Canonical -> Physical)
     function transform(x, y, i) {
         const last = BOARD_SIZE - 1;
         switch(i) {
@@ -105,6 +106,7 @@
         }
     }
 
+    // 逆変換用インデックス取得
     function getInverseTransform(i) { return [0, 3, 2, 1, 4, 5, 6, 7][i]; }
 
     function getCanonicalInfo(nodeId) {
@@ -130,13 +132,13 @@
         drawBoard();
         const { key, index } = getCanonicalInfo(currentNodeId);
         const data = posDb[key] || { comment: "", labels: {}, nextMoves: {} };
-        commentArea.value = data.comment;
+        commentArea.value = data.comment || "";
         drawStonesAndHighlights(data, index);
     }
 
     function drawBoard() {
-        ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-        ctx.fillStyle = '#e3c482'; ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+        ctx.clearRect(0, 0, LOGICAL_W, LOGICAL_H);
+        ctx.fillStyle = '#e3c482'; ctx.fillRect(0, 0, LOGICAL_W, LOGICAL_H);
         ctx.beginPath(); ctx.strokeStyle = '#000'; ctx.lineWidth = 1; 
         for (let i = 0; i < BOARD_SIZE; i++) {
             ctx.moveTo(MARGIN_L + i * CELL_SIZE, MARGIN_T); ctx.lineTo(MARGIN_L + i * CELL_SIZE, MARGIN_T + (BOARD_SIZE-1)*CELL_SIZE);
@@ -149,7 +151,7 @@
         if (showCoords) {
             ctx.fillStyle = '#333'; ctx.font = '14px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             for (let i = 0; i < BOARD_SIZE; i++) {
-                ctx.fillText(String.fromCharCode(65 + i), MARGIN_L + i * CELL_SIZE, CANVAS_H - 15);
+                ctx.fillText(String.fromCharCode(65 + i), MARGIN_L + i * CELL_SIZE, LOGICAL_H - 15);
                 ctx.fillText((BOARD_SIZE - i).toString(), 15, MARGIN_T + i * CELL_SIZE);
             }
         }
@@ -169,27 +171,24 @@
         }
 
         if (showHints) {
-            const invI = getInverseTransform(bestI);
-            // posDbに記録されている全ての「次の手」を表示
+            // カノニカル座標 -> 物理座標 (bestI を使用)
             if (data.nextMoves) {
                 for (let key in data.nextMoves) {
                     let [cx, cy] = key.split(',').map(Number);
-                    let [rx, ry] = transform(cx, cy, invI);
-                    // ラベルがある場所には丸を表示しない
+                    let [rx, ry] = transform(cx, cy, bestI);
                     if (data.labels && data.labels[`${cx},${cy}`]) continue;
-                    
                     ctx.beginPath(); ctx.fillStyle = 'rgba(128, 128, 128, 0.6)'; 
                     ctx.arc(MARGIN_L + rx * CELL_SIZE, MARGIN_T + ry * CELL_SIZE, 5, 0, Math.PI * 2); ctx.fill();
                 }
             }
-            // ラベル表示
             if (data.labels) {
                 for (let key in data.labels) {
-                    let [cx, cy] = key.split(',').map(Number); let [rx, ry] = transform(cx, cy, invI);
+                    let [cx, cy] = key.split(',').map(Number);
+                    let [rx, ry] = transform(cx, cy, bestI);
                     let sx = MARGIN_L + rx * CELL_SIZE, sy = MARGIN_T + ry * CELL_SIZE;
                     ctx.font = `bold ${Math.floor(CELL_SIZE*0.43)}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                     ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)'; ctx.lineWidth = 2.5; ctx.strokeText(data.labels[key], sx, sy);
-                    ctx.fillStyle = '#555'; ctx.fillText(data.labels[key], sx, sy);
+                    ctx.fillStyle = '#1a237e'; ctx.fillText(data.labels[key], sx, sy);
                 }
             }
         }
@@ -199,15 +198,18 @@
 
     canvas.addEventListener('click', (e) => {
         const rect = canvas.getBoundingClientRect();
-        const scaleX = CANVAS_W / rect.width, scaleY = CANVAS_H / rect.height;
+        const scaleX = LOGICAL_W / rect.width, scaleY = LOGICAL_H / rect.height;
         const mouseX = (e.clientX - rect.left) * scaleX, mouseY = (e.clientY - rect.top) * scaleY;
         const x = Math.round((mouseX - MARGIN_L) / CELL_SIZE), y = Math.round((mouseY - MARGIN_T) / CELL_SIZE);
         if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) return;
 
         const { key, index } = getCanonicalInfo(currentNodeId);
+        const invI = getInverseTransform(index);
+
         if (e.ctrlKey) {
             if (!posDb[key]) posDb[key] = { comment: "", labels: {}, nextMoves: {} };
-            const [cx, cy] = transform(x, y, index);
+            // 物理座標 -> カノニカル座標 (invI を使用)
+            const [cx, cy] = transform(x, y, invI);
             let currentText = posDb[key].labels[`${cx},${cy}`] || "";
             let newText = prompt("交点テキストを入力:", currentText);
             if (newText !== null) {
@@ -218,18 +220,15 @@
         }
 
         let node = tree[currentNodeId];
-        // tree上の既存の子ノードをチェック
         for (let cid of node.children) { if (tree[cid].x === x && tree[cid].y === y) { node.lastSelectedChild = cid; currentNodeId = cid; updateUI(); return; } }
-        
-        // 重複配置チェック
         let temp = currentNodeId;
         while (temp !== 'root') { if (tree[temp].x === x && tree[temp].y === y) return; temp = tree[temp].parent; }
         
         pushUndo();
-        // posDbに記録（カノニカル座標で保存）
         if (!posDb[key]) posDb[key] = { comment: "", labels: {}, nextMoves: {} };
         if (!posDb[key].nextMoves) posDb[key].nextMoves = {};
-        const [cx, cy] = transform(x, y, index);
+        // 物理座標 -> カノニカル座標 (invI を使用)
+        const [cx, cy] = transform(x, y, invI);
         posDb[key].nextMoves[`${cx},${cy}`] = true;
 
         let nid = 'node_' + (nextNodeId++);
@@ -248,7 +247,7 @@
         showCoords = !showCoords; document.getElementById('toggleCoordsBtn').style.background = showCoords ? "#f9f9f9" : "#ddd";
         if (showCoords) { CELL_SIZE = 40; MARGIN_L = 35; MARGIN_R = 15; MARGIN_T = 25; MARGIN_B = 35; }
         else { CELL_SIZE = (610-40)/14; MARGIN_L = MARGIN_R = MARGIN_T = MARGIN_B = 20; }
-        setupCanvas(); updateUI();
+        updateUI();
     }
     function goBack() { if (tree[currentNodeId].parent) { currentNodeId = tree[currentNodeId].parent; updateUI(); } }
     function goNext() { let n = tree[currentNodeId], t = n.lastSelectedChild || (n.children.length > 0 ? n.children[0] : null); if (t) { currentNodeId = t; updateUI(); } }
