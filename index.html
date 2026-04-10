@@ -54,6 +54,7 @@
         @media (min-width: 1200px) {
             .container { flex-wrap: nowrap; } .left-pane { width: 610px; flex: 0 0 auto; } .right-pane { width: 416px; flex: 0 0 auto; } 
             textarea { min-height: 300px; line-height: 1.45; }
+            textarea:focus { border-color: #7ab8f5; box-shadow: 0 0 0 3px rgba(100,170,240,0.25); }
         }
     </style>
 </head>
@@ -85,7 +86,7 @@
             ・<b>Ctrl+S</b> で保存 / <b>Ctrl+O</b> で読込<br>
             ・<b>Ctrl+[</b> でコメント入力切替 / <b>Ctrl+F</b> でコメント表示切替
         </div>
-        <textarea id="commentArea" placeholder="ここに局面のコメントを入力..."></textarea>
+        <textarea id="commentArea" ></textarea>
     </div>
 </div>
 
