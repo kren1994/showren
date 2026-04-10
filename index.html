@@ -27,7 +27,6 @@
         }
         .left-pane {
             flex: 1 1 100%;
-            max-width: 600px;
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -103,6 +102,7 @@
             border: 1px solid #eee;
         }
 
+        /* --- スマホ・小型iPad向け設定 (画面幅 1199px 以下) --- */
         @media (max-width: 1199px) {
             body { padding: 0; }
             .container {
@@ -119,14 +119,19 @@
                 min-height: 210px;
                 margin: 0 5px 10px 5px;
                 width: calc(100% - 10px);
+                line-height: 1.45; /* 1.32 * 1.1 = 約1.45倍 */
             }
         }
 
+        /* --- PC・大型タブレット向け設定 (画面幅 1200px 以上) --- */
         @media (min-width: 1200px) {
             .container { flex-wrap: nowrap; }
-            .left-pane { width: 554px; flex: 0 0 auto; }
-            .right-pane { width: 320px; flex: 0 0 auto; }
-            textarea { min-height: 300px; }
+            .left-pane { width: 610px; flex: 0 0 auto; } 
+            .right-pane { width: 416px; flex: 0 0 auto; } 
+            textarea { 
+                min-height: 300px; 
+                line-height: 1.45; /* 1.32 * 1.1 = 約1.45倍 */
+            }
         }
     </style>
 </head>
@@ -161,10 +166,10 @@
 
 <script>
     const BOARD_SIZE = 15;
-    const CELL_SIZE = 36;
+    const CELL_SIZE = 40; 
     const MARGIN_L = 35; 
     const MARGIN_R = 15; 
-    const MARGIN_T = 25; // 石（半径16.2px）が見切れないよう 15px から 25px に増加
+    const MARGIN_T = 25; 
     const MARGIN_B = 35; 
 
     const CANVAS_W = CELL_SIZE * (BOARD_SIZE - 1) + MARGIN_L + MARGIN_R;
