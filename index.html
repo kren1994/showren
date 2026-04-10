@@ -7,143 +7,39 @@
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
-            background-color: #f4f4f9;
-            margin: 0;
-            padding: 10px;
-            display: flex;
-            justify-content: center;
-            touch-action: manipulation; 
+            background-color: #f4f4f9; margin: 0; padding: 10px;
+            display: flex; justify-content: center; touch-action: manipulation; 
         }
         .container {
-            display: flex;
-            gap: 20px;
-            background: #fff;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            flex-wrap: wrap;
-            max-width: 100%;
-            box-sizing: border-box;
+            display: flex; gap: 20px; background: #fff; padding: 15px; border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); flex-wrap: wrap; max-width: 100%; box-sizing: border-box;
         }
-        .left-pane {
-            flex: 1 1 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin: 0 auto;
-        }
-        .right-pane {
-            flex: 1 1 100%;
-            max-width: 600px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin: 0 auto;
-        }
-        .board-container {
-            position: relative;
-            width: 100%;
-            display: flex;
-            justify-content: center; 
-        }
+        .left-pane, .right-pane { flex: 1 1 100%; max-width: 650px; display: flex; flex-direction: column; gap: 10px; margin: 0 auto; }
+        .board-container { position: relative; width: 100%; display: flex; justify-content: center; }
         canvas {
-            background-color: #e3c482;
-            border-radius: 4px;
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
-            cursor: pointer;
-            max-width: 100%; 
-            aspect-ratio: 1 / 1;
-            height: auto;
-            display: block;
-            margin: 0 auto;
-            touch-action: none; 
+            background-color: #e3c482; border-radius: 4px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            cursor: pointer; display: block; margin: 0 auto; touch-action: none; 
         }
-        .board-controls {
-            display: flex;
-            gap: 5px;
-            width: 100%;
-            box-sizing: border-box;
-        }
+        .board-controls { display: flex; gap: 5px; width: 100%; box-sizing: border-box; }
         .board-controls button {
-            flex: 1;
-            padding: 12px 0;
-            border: 1px solid #ccc;
-            background: #f9f9f9;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            touch-action: manipulation; 
+            flex: 1; padding: 12px 0; border: 1px solid #ccc; background: #f9f9f9;
+            border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; touch-action: manipulation; 
         }
-        .board-controls button:hover {
-            background: #e9e9e9;
-        }
-        
+        .board-controls button:hover { background: #e9e9e9; }
         textarea {
-            width: 100%;
-            flex-grow: 1;
-            min-height: 150px;
-            resize: vertical;
-            padding: 10px;
-            font-size: 16px; 
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-            outline: none;
-            background-color: #fff;
-            color: #333;
+            width: 100%; flex-grow: 1; min-height: 150px; resize: vertical; padding: 10px; font-size: 16px; 
+            border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; outline: none; background-color: #fff; color: #333;
         }
-        textarea:focus {
-            border-color: #3080ff;
-            box-shadow: 0 0 5px rgba(48, 128, 255, 0.5);
-        }
-
-        .hidden-hint {
-            color: transparent !important;
-            caret-color: transparent !important;
-        }
-        .hidden-hint::placeholder {
-            color: transparent !important;
-        }
-
-        .guide {
-            font-size: 13px;
-            color: #666;
-            line-height: 1.5;
-            background: #f9f9fb;
-            padding: 10px;
-            border-radius: 4px;
-            border: 1px solid #eee;
-        }
-
+        .hidden-hint { color: transparent !important; caret-color: transparent !important; }
+        .hidden-hint::placeholder { color: transparent !important; }
+        .guide { font-size: 13px; color: #666; line-height: 1.5; background: #f9f9fb; padding: 10px; border-radius: 4px; border: 1px solid #eee; }
         @media (max-width: 1199px) {
-            body { padding: 0; }
-            .container {
-                padding: 0; 
-                border-radius: 0;
-                box-shadow: none;
-                gap: 5px;
-                width: 100%;
-            }
-            .guide { display: none; }
-            .left-pane, .right-pane { max-width: 100%; width: 100%; }
-            .board-controls { padding: 0 5px; }
-            textarea {
-                min-height: 210px;
-                margin: 0 5px 10px 5px;
-                width: calc(100% - 10px);
-                line-height: 1.45;
-            }
+            body { padding: 0; } .container { padding: 0; border-radius: 0; box-shadow: none; gap: 5px; width: 100%; }
+            .guide { display: none; } textarea { min-height: 210px; margin: 0 5px 10px 5px; width: calc(100% - 10px); line-height: 1.45; }
         }
-
         @media (min-width: 1200px) {
-            .container { flex-wrap: nowrap; }
-            .left-pane { width: 610px; flex: 0 0 auto; } 
-            .right-pane { width: 416px; flex: 0 0 auto; } 
-            textarea { 
-                min-height: 300px; 
-                line-height: 1.45;
-            }
+            .container { flex-wrap: nowrap; } .left-pane { width: 610px; flex: 0 0 auto; } .right-pane { width: 416px; flex: 0 0 auto; } 
+            textarea { min-height: 300px; line-height: 1.45; }
         }
     </style>
 </head>
@@ -151,26 +47,19 @@
 
 <div class="container">
     <div class="left-pane">
-        <div class="board-container">
-            <canvas id="boardCanvas"></canvas>
-        </div>
+        <div class="board-container"><canvas id="boardCanvas"></canvas></div>
         <div class="board-controls">
-            <!-- 読込ボタンと、レイアウト調整用の透明スペーサー -->
             <button class="load-btn" onclick="document.getElementById('fileInput').click()" style="background:#e0f0ff; border-color:#b0d0ff; color:#0055aa;">読込</button>
-            <div style="flex: 1;"></div> <!-- 読込ボタンと同じ幅のスペース -->
-            
+            <div style="flex: 1;"></div> 
             <button onclick="goToPrevBranch()">&lt;&lt;</button>
             <button onclick="goBack()">&lt;</button>
             <button onclick="goNext()">&gt;</button>
             <button onclick="goToNextBranch()">&gt;&gt;</button>
-            
             <button id="toggleHintsBtn" onclick="toggleHints()">A</button>
             <button id="toggleCoordsBtn" onclick="toggleCoords()">座標</button>
-            
             <input type="file" id="fileInput" accept=".json" style="display:none;">
         </div>
     </div>
-
     <div class="right-pane">
         <div class="guide">
             ・<b>Delete</b> で最新手を削除 / <b>Ctrl+Z</b> でUndo<br>
@@ -183,150 +72,82 @@
 
 <script>
     const BOARD_SIZE = 15;
-    
-    let CELL_SIZE = 40; 
-    let MARGIN_L = 35; 
-    let MARGIN_R = 15; 
-    let MARGIN_T = 25; 
-    let MARGIN_B = 35; 
+    let CELL_SIZE = 40, MARGIN_L = 35, MARGIN_R = 15, MARGIN_T = 25, MARGIN_B = 35; 
+    const CANVAS_W = 610, CANVAS_H = 620; 
 
-    const BASE_CANVAS_SIZE = CELL_SIZE * (BOARD_SIZE - 1) + MARGIN_L + MARGIN_R; 
-    
-    let CANVAS_W = BASE_CANVAS_SIZE;
-    let CANVAS_H = BASE_CANVAS_SIZE;
-    
     const canvas = document.getElementById('boardCanvas');
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
+    const commentArea = document.getElementById('commentArea');
 
-    let showHints = true;
-    let showCoords = true;
+    let tree = {}, posDb = {}; 
+    let currentNodeId = 'root', nextNodeId = 1, undoStack = []; 
+    let showHints = true, showCoords = true;
 
     function setupCanvas() {
-        canvas.width = CANVAS_W * dpr;
-        canvas.height = CANVAS_H * dpr;
-        canvas.style.maxWidth = CANVAS_W + 'px';
-        canvas.style.width = '100%';
-        canvas.style.height = 'auto';
-        canvas.style.aspectRatio = `${CANVAS_W} / ${CANVAS_H}`;
+        canvas.width = CANVAS_W * dpr; canvas.height = CANVAS_H * dpr;
+        canvas.style.maxWidth = CANVAS_W + 'px'; canvas.style.width = '100%';
+        canvas.style.height = 'auto'; canvas.style.aspectRatio = `${CANVAS_W} / ${CANVAS_H}`;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
-    const commentArea = document.getElementById('commentArea');
-
-    let tree = {};
-    let currentNodeId = 'root';
-    let nextNodeId = 1;
-    let undoStack = []; 
-
     function initGame() {
-        tree = {
-            'root': { id: 'root', parent: null, children: [], x: null, y: null, color: 0, comment: '', moveNumber: 0, lastSelectedChild: null, labels: {} }
-        };
-        currentNodeId = 'root';
-        nextNodeId = 1;
-        undoStack = [];
-        setupCanvas();
-        updateUI();
+        tree = { 'root': { id: 'root', parent: null, children: [], x: null, y: null, color: 0, moveNumber: 0 } };
+        posDb = {}; currentNodeId = 'root'; nextNodeId = 1; undoStack = [];
+        setupCanvas(); updateUI();
     }
 
-    function pushUndo() {
-        undoStack.push(JSON.stringify({ tree, currentNodeId, nextNodeId }));
-        if (undoStack.length > 50) undoStack.shift(); 
-    }
-
-    function undo() {
-        if (undoStack.length === 0) return;
-        const state = JSON.parse(undoStack.pop());
-        tree = state.tree;
-        currentNodeId = state.currentNodeId;
-        nextNodeId = state.nextNodeId;
-        updateUI();
-    }
-
-    function deleteCurrentNode() {
-        if (currentNodeId === 'root') return;
-        pushUndo();
-        const targetId = currentNodeId;
-        const parentId = tree[targetId].parent;
-        tree[parentId].children = tree[parentId].children.filter(id => id !== targetId);
-        function removeRecursive(id) {
-            let node = tree[id];
-            if (!node) return;
-            for (let childId of node.children) removeRecursive(childId);
-            delete tree[id];
+    function transform(x, y, i) {
+        const last = BOARD_SIZE - 1;
+        switch(i) {
+            case 0: return [x, y]; case 1: return [y, last-x]; case 2: return [last-x, last-y]; case 3: return [last-y, x];
+            case 4: return [last-x, y]; case 5: return [x, last-y]; case 6: return [y, x]; case 7: return [last-y, last-x];
         }
-        removeRecursive(targetId);
-        currentNodeId = parentId;
-        updateUI();
     }
 
-    function toggleHints() {
-        showHints = !showHints;
-        document.getElementById('toggleHintsBtn').style.background = showHints ? "#f9f9f9" : "#ddd";
-        
-        if (showHints) {
-            commentArea.classList.remove('hidden-hint');
-            commentArea.readOnly = false;
-        } else {
-            commentArea.classList.add('hidden-hint');
-            commentArea.readOnly = true;
+    function getInverseTransform(i) { return [0, 3, 2, 1, 4, 5, 6, 7][i]; }
+
+    function getCanonicalInfo(nodeId) {
+        let grid = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0));
+        let curr = tree[nodeId];
+        while (curr && curr.id !== 'root') { grid[curr.x][curr.y] = curr.color; curr = tree[curr.parent]; }
+        const nextColor = tree[nodeId].moveNumber % 2 === 0 ? 1 : 2;
+        let variants = [];
+        for (let i = 0; i < 8; i++) {
+            let s = "";
+            for (let y = 0; y < BOARD_SIZE; y++) {
+                for (let x = 0; x < BOARD_SIZE; x++) {
+                    const [tx, ty] = transform(x, y, i); s += grid[tx][ty];
+                }
+            }
+            variants.push({ key: s + "_" + nextColor, index: i });
         }
-        updateUI();
+        variants.sort((a, b) => a.key.localeCompare(b.key));
+        return variants[0];
     }
 
-    function toggleCoords() {
-        showCoords = !showCoords;
-        document.getElementById('toggleCoordsBtn').style.background = showCoords ? "#f9f9f9" : "#ddd";
-        
-        if (showCoords) {
-            CELL_SIZE = 40;
-            MARGIN_L = 35; MARGIN_R = 15; MARGIN_T = 25; MARGIN_B = 35;
-        } else {
-            const minMargin = 20;
-            const availableSize = BASE_CANVAS_SIZE - (minMargin * 2);
-            CELL_SIZE = availableSize / (BOARD_SIZE - 1);
-            MARGIN_L = (BASE_CANVAS_SIZE - CELL_SIZE * (BOARD_SIZE - 1)) / 2;
-            MARGIN_R = MARGIN_L;
-            MARGIN_T = MARGIN_L;
-            MARGIN_B = MARGIN_L;
-        }
-        setupCanvas(); 
-        updateUI();
-    }
-
-    function getScreenPos(x, y) {
-        return { sx: MARGIN_L + x * CELL_SIZE, sy: MARGIN_T + y * CELL_SIZE };
+    function updateUI() {
+        drawBoard();
+        const { key, index } = getCanonicalInfo(currentNodeId);
+        const data = posDb[key] || { comment: "", labels: {}, nextMoves: {} };
+        commentArea.value = data.comment;
+        drawStonesAndHighlights(data, index);
     }
 
     function drawBoard() {
         ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-        ctx.fillStyle = '#e3c482';
-        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-        ctx.beginPath();
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 1; 
+        ctx.fillStyle = '#e3c482'; ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+        ctx.beginPath(); ctx.strokeStyle = '#000'; ctx.lineWidth = 1; 
         for (let i = 0; i < BOARD_SIZE; i++) {
-            ctx.moveTo(MARGIN_L + i * CELL_SIZE, MARGIN_T);
-            ctx.lineTo(MARGIN_L + i * CELL_SIZE, MARGIN_T + (BOARD_SIZE - 1) * CELL_SIZE);
-            ctx.moveTo(MARGIN_L, MARGIN_T + i * CELL_SIZE);
-            ctx.lineTo(MARGIN_L + (BOARD_SIZE - 1) * CELL_SIZE, MARGIN_T + i * CELL_SIZE);
+            ctx.moveTo(MARGIN_L + i * CELL_SIZE, MARGIN_T); ctx.lineTo(MARGIN_L + i * CELL_SIZE, MARGIN_T + (BOARD_SIZE-1)*CELL_SIZE);
+            ctx.moveTo(MARGIN_L, MARGIN_T + i * CELL_SIZE); ctx.lineTo(MARGIN_L + (BOARD_SIZE-1)*CELL_SIZE, MARGIN_T + i * CELL_SIZE);
         }
         ctx.stroke();
-
         const stars = [[3,3], [11,3], [7,7], [3,11], [11,11]];
         ctx.fillStyle = '#000';
-        for (let [x, y] of stars) {
-            ctx.beginPath();
-            ctx.arc(MARGIN_L + x * CELL_SIZE, MARGIN_T + y * CELL_SIZE, 3, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
+        for (let [x, y] of stars) { ctx.beginPath(); ctx.arc(MARGIN_L + x * CELL_SIZE, MARGIN_T + y * CELL_SIZE, 3, 0, Math.PI * 2); ctx.fill(); }
         if (showCoords) {
-            ctx.fillStyle = '#333';
-            ctx.font = '14px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#333'; ctx.font = '14px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             for (let i = 0; i < BOARD_SIZE; i++) {
                 ctx.fillText(String.fromCharCode(65 + i), MARGIN_L + i * CELL_SIZE, CANVAS_H - 15);
                 ctx.fillText((BOARD_SIZE - i).toString(), 15, MARGIN_T + i * CELL_SIZE);
@@ -334,242 +155,146 @@
         }
     }
 
-    function drawStonesAndHighlights() {
-        let path = [];
-        let curr = tree[currentNodeId];
-        while (curr.id !== 'root') {
-            path.unshift(curr);
-            curr = tree[curr.parent];
-        }
-
-        let currentNode = tree[currentNodeId];
-
+    function drawStonesAndHighlights(data, bestI) {
+        let path = []; let curr = tree[currentNodeId];
+        while (curr && curr.id !== 'root') { path.unshift(curr); curr = tree[curr.parent]; }
         for (let node of path) {
-            let { sx, sy } = getScreenPos(node.x, node.y);
-            ctx.beginPath();
-            ctx.arc(sx, sy, CELL_SIZE * 0.45, 0, Math.PI * 2);
-            ctx.fillStyle = node.color === 1 ? '#000' : '#fff';
-            ctx.fill();
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = '#333';
-            ctx.stroke();
+            let sx = MARGIN_L + node.x * CELL_SIZE, sy = MARGIN_T + node.y * CELL_SIZE;
+            ctx.beginPath(); ctx.arc(sx, sy, CELL_SIZE * 0.45, 0, Math.PI * 2);
+            ctx.fillStyle = node.color === 1 ? '#000' : '#fff'; ctx.fill();
+            ctx.lineWidth = 1; ctx.strokeStyle = '#333'; ctx.stroke();
             ctx.fillStyle = node.color === 1 ? '#fff' : '#000';
-            ctx.font = `bold ${Math.floor(CELL_SIZE*0.35)}px Arial`;
+            ctx.font = `bold ${Math.floor(CELL_SIZE*0.35)}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText(node.moveNumber.toString(), sx, sy);
         }
-        
+
         if (showHints) {
-            // 次の手の候補（控えめな半透明グレー）
-            for (let childId of currentNode.children) {
-                let child = tree[childId];
-                if (currentNode.labels && currentNode.labels[`${child.x},${child.y}`]) {
-                    continue; // ラベルがある場所には丸を描画しない
-                }
-                let { sx, sy } = getScreenPos(child.x, child.y);
-                ctx.beginPath();
-                ctx.fillStyle = 'rgba(128, 128, 128, 0.8)'; 
-                ctx.arc(sx, sy, 5, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            // 交点テキスト（グレーに統一、サイズ0.9倍化）
-            if (currentNode.labels) {
-                for (let key in currentNode.labels) {
-                    let [lx, ly] = key.split(',').map(Number);
-                    let text = currentNode.labels[key];
-                    if (!text) continue;
-                    let { sx, sy } = getScreenPos(lx, ly);
+            const invI = getInverseTransform(bestI);
+            // posDbに記録されている全ての「次の手」を表示
+            if (data.nextMoves) {
+                for (let key in data.nextMoves) {
+                    let [cx, cy] = key.split(',').map(Number);
+                    let [rx, ry] = transform(cx, cy, invI);
+                    // ラベルがある場所には丸を表示しない
+                    if (data.labels && data.labels[`${cx},${cy}`]) continue;
                     
-                    // フォントサイズを元の0.48から0.43（約0.9倍）に縮小
-                    ctx.font = `bold ${Math.floor(CELL_SIZE*0.43)}px Arial`;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-
-                    // 視認性確保のための細い白枠（ハロ）
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
-                    ctx.lineWidth = 2.5;
-                    ctx.lineJoin = 'round';
-                    ctx.strokeText(text, sx, sy);
-
-                    // 文字色はすべてグレー
-                    ctx.fillStyle = '#555'; 
-                    ctx.fillText(text, sx, sy);
+                    ctx.beginPath(); ctx.fillStyle = 'rgba(128, 128, 128, 0.6)'; 
+                    ctx.arc(MARGIN_L + rx * CELL_SIZE, MARGIN_T + ry * CELL_SIZE, 5, 0, Math.PI * 2); ctx.fill();
+                }
+            }
+            // ラベル表示
+            if (data.labels) {
+                for (let key in data.labels) {
+                    let [cx, cy] = key.split(',').map(Number); let [rx, ry] = transform(cx, cy, invI);
+                    let sx = MARGIN_L + rx * CELL_SIZE, sy = MARGIN_T + ry * CELL_SIZE;
+                    ctx.font = `bold ${Math.floor(CELL_SIZE*0.43)}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)'; ctx.lineWidth = 2.5; ctx.strokeText(data.labels[key], sx, sy);
+                    ctx.fillStyle = '#555'; ctx.fillText(data.labels[key], sx, sy);
                 }
             }
         }
     }
 
-    function updateUI() {
-        drawBoard();
-        drawStonesAndHighlights();
-        let node = tree[currentNodeId];
-        commentArea.value = node.comment || "";
-    }
-
-    function getPreferredChild(nodeId) {
-        let node = tree[nodeId];
-        if (node.children.length === 0) return null;
-        if (node.lastSelectedChild && node.children.includes(node.lastSelectedChild)) {
-            return node.lastSelectedChild;
-        }
-        return node.children[0];
-    }
+    function pushUndo() { undoStack.push(JSON.stringify({ tree, posDb, currentNodeId, nextNodeId })); if (undoStack.length > 50) undoStack.shift(); }
 
     canvas.addEventListener('click', (e) => {
         const rect = canvas.getBoundingClientRect();
-        const scaleX = CANVAS_W / rect.width;
-        const scaleY = CANVAS_H / rect.height;
-        const mouseX = (e.clientX - rect.left) * scaleX;
-        const mouseY = (e.clientY - rect.top) * scaleY;
-        
-        const x = Math.round((mouseX - MARGIN_L) / CELL_SIZE);
-        const y = Math.round((mouseY - MARGIN_T) / CELL_SIZE);
-
+        const scaleX = CANVAS_W / rect.width, scaleY = CANVAS_H / rect.height;
+        const mouseX = (e.clientX - rect.left) * scaleX, mouseY = (e.clientY - rect.top) * scaleY;
+        const x = Math.round((mouseX - MARGIN_L) / CELL_SIZE), y = Math.round((mouseY - MARGIN_T) / CELL_SIZE);
         if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) return;
 
+        const { key, index } = getCanonicalInfo(currentNodeId);
         if (e.ctrlKey) {
-            let node = tree[currentNodeId];
-            if (!node.labels) node.labels = {};
-            let currentText = node.labels[`${x},${y}`] || "";
+            if (!posDb[key]) posDb[key] = { comment: "", labels: {}, nextMoves: {} };
+            const [cx, cy] = transform(x, y, index);
+            let currentText = posDb[key].labels[`${cx},${cy}`] || "";
             let newText = prompt("交点テキストを入力:", currentText);
             if (newText !== null) {
-                pushUndo();
-                if (newText === "") delete node.labels[`${x},${y}`];
-                else node.labels[`${x},${y}`] = newText;
+                pushUndo(); if (newText === "") delete posDb[key].labels[`${cx},${cy}`]; else posDb[key].labels[`${cx},${cy}`] = newText;
                 updateUI();
             }
             return;
         }
 
-        let currentNode = tree[currentNodeId];
-        for (let childId of currentNode.children) {
-            let child = tree[childId];
-            if (child.x === x && child.y === y) {
-                tree[currentNodeId].lastSelectedChild = childId; 
-                currentNodeId = childId;
-                updateUI();
-                return;
-            }
-        }
-        let tempId = currentNodeId;
-        while (tempId !== 'root') {
-            let n = tree[tempId];
-            if (n.x === x && n.y === y) return;
-            tempId = n.parent;
-        }
+        let node = tree[currentNodeId];
+        // tree上の既存の子ノードをチェック
+        for (let cid of node.children) { if (tree[cid].x === x && tree[cid].y === y) { node.lastSelectedChild = cid; currentNodeId = cid; updateUI(); return; } }
+        
+        // 重複配置チェック
+        let temp = currentNodeId;
+        while (temp !== 'root') { if (tree[temp].x === x && tree[temp].y === y) return; temp = tree[temp].parent; }
         
         pushUndo();
-        let newNodeId = 'node_' + (nextNodeId++);
-        tree[newNodeId] = {
-            id: newNodeId, parent: currentNodeId, children: [],
-            x: x, y: y, color: currentNode.moveNumber % 2 === 0 ? 1 : 2,
-            comment: "", moveNumber: currentNode.moveNumber + 1, lastSelectedChild: null,
-            labels: {} 
-        };
-        tree[currentNodeId].children.push(newNodeId);
-        tree[currentNodeId].lastSelectedChild = newNodeId; 
-        currentNodeId = newNodeId;
-        updateUI();
-    });
+        // posDbに記録（カノニカル座標で保存）
+        if (!posDb[key]) posDb[key] = { comment: "", labels: {}, nextMoves: {} };
+        if (!posDb[key].nextMoves) posDb[key].nextMoves = {};
+        const [cx, cy] = transform(x, y, index);
+        posDb[key].nextMoves[`${cx},${cy}`] = true;
 
-    canvas.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        goBack();
+        let nid = 'node_' + (nextNodeId++);
+        tree[nid] = { id: nid, parent: currentNodeId, children: [], x, y, color: node.moveNumber % 2 === 0 ? 1 : 2, moveNumber: node.moveNumber + 1 };
+        node.children.push(nid); node.lastSelectedChild = nid; currentNodeId = nid; updateUI();
     });
 
     commentArea.addEventListener('input', (e) => {
-        tree[currentNodeId].comment = e.target.value;
+        const { key } = getCanonicalInfo(currentNodeId);
+        if (!posDb[key]) posDb[key] = { comment: "", labels: {}, nextMoves: {} };
+        posDb[key].comment = e.target.value;
     });
 
-    function goBack() { 
-        if (tree[currentNodeId].parent) { 
-            currentNodeId = tree[currentNodeId].parent; 
-            updateUI(); 
-        } 
+    function toggleHints() { showHints = !showHints; document.getElementById('toggleHintsBtn').style.background = showHints ? "#f9f9f9" : "#ddd"; commentArea.classList.toggle('hidden-hint', !showHints); commentArea.readOnly = !showHints; updateUI(); }
+    function toggleCoords() {
+        showCoords = !showCoords; document.getElementById('toggleCoordsBtn').style.background = showCoords ? "#f9f9f9" : "#ddd";
+        if (showCoords) { CELL_SIZE = 40; MARGIN_L = 35; MARGIN_R = 15; MARGIN_T = 25; MARGIN_B = 35; }
+        else { CELL_SIZE = (610-40)/14; MARGIN_L = MARGIN_R = MARGIN_T = MARGIN_B = 20; }
+        setupCanvas(); updateUI();
     }
-    function goNext() {
-        let next = getPreferredChild(currentNodeId);
-        if (next) { currentNodeId = next; updateUI(); }
-    }
-    function goToPrevBranch() {
-        let curr = tree[currentNodeId];
-        while (curr.parent) {
-            curr = tree[curr.parent];
-            if (curr.children.length > 1 || curr.id === 'root') {
-                currentNodeId = curr.id; updateUI(); return;
-            }
-        }
-    }
+    function goBack() { if (tree[currentNodeId].parent) { currentNodeId = tree[currentNodeId].parent; updateUI(); } }
+    function goNext() { let n = tree[currentNodeId], t = n.lastSelectedChild || (n.children.length > 0 ? n.children[0] : null); if (t) { currentNodeId = t; updateUI(); } }
+    function goToPrevBranch() { let c = tree[currentNodeId]; while (c.parent) { c = tree[c.parent]; if (c.children.length > 1 || c.id === 'root') { currentNodeId = c.id; updateUI(); return; } } }
     function goToNextBranch() {
-        let curr = tree[currentNodeId];
-        let nextId = getPreferredChild(curr.id);
-        while (nextId) {
-            curr = tree[nextId];
-            if (curr.children.length > 1 || curr.children.length === 0) {
-                currentNodeId = curr.id; updateUI(); return;
-            }
-            nextId = getPreferredChild(curr.id);
-        }
+        let c = tree[currentNodeId], t = c.lastSelectedChild || (c.children.length > 0 ? c.children[0] : null);
+        while (t) { c = tree[t]; if (c.children.length > 1 || c.children.length === 0) { currentNodeId = c.id; updateUI(); return; } t = c.lastSelectedChild || (c.children.length > 0 ? c.children[0] : null); }
     }
-
+    function undo() { if (undoStack.length === 0) return; const s = JSON.parse(undoStack.pop()); tree = s.tree; posDb = s.posDb; currentNodeId = s.currentNodeId; nextNodeId = s.nextNodeId; updateUI(); }
+    function deleteCurrentNode() {
+        if (currentNodeId === 'root') return;
+        pushUndo(); const tid = currentNodeId, pid = tree[tid].parent;
+        tree[pid].children = tree[pid].children.filter(id => id !== tid);
+        const del = (id) => { tree[id].children.forEach(del); delete tree[id]; }; del(tid); currentNodeId = pid; updateUI();
+    }
     document.addEventListener('keydown', (e) => {
-        const isTextArea = (document.activeElement === commentArea);
+        if (document.activeElement === commentArea) { if (e.ctrlKey && e.key === '[') { e.preventDefault(); commentArea.blur(); } return; }
         if (e.ctrlKey || e.metaKey) {
-            const key = e.key.toLowerCase();
-            if (e.key === '[') {
-                e.preventDefault();
-                if (isTextArea) commentArea.blur();
-                else commentArea.focus();
-                return;
-            }
-            if (key === 'z') { if (!isTextArea) { e.preventDefault(); undo(); } return; }
-            if (key === 's') { e.preventDefault(); saveKifu(); return; }
-            if (key === 'o') { e.preventDefault(); document.getElementById('fileInput').click(); return; }
+            const k = e.key.toLowerCase();
+            if (e.key === '[') { e.preventDefault(); commentArea.focus(); }
+            else if (k === 'z') { e.preventDefault(); undo(); } else if (k === 's') { e.preventDefault(); saveKifu(); }
+            else if (k === 'o') { e.preventDefault(); document.getElementById('fileInput').click(); } return;
         }
-        if (isTextArea) return;
         switch(e.key) {
-            case 'h': e.preventDefault(); goToPrevBranch(); break; 
-            case 'j': e.preventDefault(); goBack(); break;          
-            case 'k': e.preventDefault(); goNext(); break;          
-            case 'l': e.preventDefault(); goToNextBranch(); break;  
-            case 'ArrowLeft': e.preventDefault(); goBack(); break;
-            case 'ArrowRight': e.preventDefault(); goNext(); break;
-            case 'ArrowUp': e.preventDefault(); goToPrevBranch(); break;
-            case 'ArrowDown': e.preventDefault(); goToNextBranch(); break;
-            case 'Delete': e.preventDefault(); deleteCurrentNode(); break;
+            case 'h': e.preventDefault(); goToPrevBranch(); break; case 'j': e.preventDefault(); goBack(); break;
+            case 'k': e.preventDefault(); goNext(); break; case 'l': e.preventDefault(); goToNextBranch(); break;
+            case 'ArrowLeft': goBack(); break; case 'ArrowRight': goNext(); break;
+            case 'ArrowUp': goToPrevBranch(); break; case 'ArrowDown': goToNextBranch(); break;
+            case 'Delete': deleteCurrentNode(); break;
         }
     });
-
     function saveKifu() {
-        const data = { tree: tree, currentNodeId: currentNodeId, nextNodeId: nextNodeId };
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `renju_kifu_${new Date().getTime()}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
+        const data = { tree, posDb, currentNodeId, nextNodeId };
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
+        a.download = `renju_${new Date().getTime()}.json`; a.click();
     }
-
-    document.getElementById('fileInput').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+        const file = e.target.files[0]; if (!file) return;
+        const reader = new FileReader(); reader.onload = (e) => {
             try {
-                const data = JSON.parse(e.target.result);
-                if (data && data.tree) {
-                    tree = data.tree;
-                    currentNodeId = data.currentNodeId || 'root';
-                    nextNodeId = data.nextNodeId || 1;
-                    undoStack = []; updateUI();
-                }
-            } catch (err) { alert("ファイルの読み込みに失敗しました。"); }
-        };
-        reader.readAsText(file);
-        e.target.value = '';
+                const d = JSON.parse(e.target.result);
+                tree = d.tree; posDb = d.posDb || {}; currentNodeId = d.currentNodeId; nextNodeId = d.nextNodeId; undoStack = []; updateUI();
+            } catch(err) { alert("読込失敗"); }
+        }; reader.readAsText(file); e.target.value = '';
     });
-
+    canvas.addEventListener('contextmenu', e => { e.preventDefault(); goBack(); });
     initGame();
 </script>
 </body>
