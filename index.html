@@ -119,7 +119,7 @@
                 min-height: 210px;
                 margin: 0 5px 10px 5px;
                 width: calc(100% - 10px);
-                line-height: 1.45; /* 1.32 * 1.1 = 約1.45倍 */
+                line-height: 1.45;
             }
         }
 
@@ -130,7 +130,7 @@
             .right-pane { width: 416px; flex: 0 0 auto; } 
             textarea { 
                 min-height: 300px; 
-                line-height: 1.45; /* 1.32 * 1.1 = 約1.45倍 */
+                line-height: 1.45;
             }
         }
     </style>
@@ -172,13 +172,25 @@
     const MARGIN_T = 25; 
     const MARGIN_B = 35; 
 
+    // --- ここから高解像度対応 ---
+    const dpr = window.devicePixelRatio || 1; // デバイスのピクセル比を取得
+
     const CANVAS_W = CELL_SIZE * (BOARD_SIZE - 1) + MARGIN_L + MARGIN_R;
     const CANVAS_H = CELL_SIZE * (BOARD_SIZE - 1) + MARGIN_T + MARGIN_B;
     
     const canvas = document.getElementById('boardCanvas');
-    canvas.width = CANVAS_W;
-    canvas.height = CANVAS_H;
+    // 内部的な描画バッファのサイズをピクセル比倍にする
+    canvas.width = CANVAS_W * dpr;
+    canvas.height = CANVAS_H * dpr;
+    // CSSで表示サイズを指定する
+    canvas.style.width = CANVAS_W + 'px';
+    canvas.style.height = CANVAS_H + 'px';
+    
     const ctx = canvas.getContext('2d');
+    // すべての描画命令をピクセル比倍で実行する
+    ctx.scale(dpr, dpr);
+    // --- ここまで高解像度対応 ---
+
     const commentArea = document.getElementById('commentArea');
 
     let tree = {};
@@ -235,12 +247,17 @@
     }
 
     function drawBoard() {
+        // スケールを考慮してクリア
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+        
         ctx.fillStyle = '#e3c482';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
         ctx.beginPath();
         ctx.strokeStyle = '#000';
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 1 / dpr; // 高解像度でも1pxの線を引く
         for (let i = 0; i < BOARD_SIZE; i++) {
             ctx.moveTo(MARGIN_L + i * CELL_SIZE, MARGIN_T);
             ctx.lineTo(MARGIN_L + i * CELL_SIZE, MARGIN_T + (BOARD_SIZE - 1) * CELL_SIZE);
@@ -278,7 +295,7 @@
             ctx.arc(sx, sy, CELL_SIZE * 0.45, 0, Math.PI * 2);
             ctx.fillStyle = node.color === 1 ? '#000' : '#fff';
             ctx.fill();
-            ctx.lineWidth = 1;
+            ctx.lineWidth = 1 / dpr;
             ctx.strokeStyle = '#333';
             ctx.stroke();
             ctx.fillStyle = node.color === 1 ? '#fff' : '#000';
@@ -314,10 +331,9 @@
 
     canvas.addEventListener('click', (e) => {
         const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        const mouseX = (e.clientX - rect.left) * scaleX;
-        const mouseY = (e.clientY - rect.top) * scaleY;
+        // ここでの座標計算はCSSピクセルベースで行われるため、dprを意識する必要はない
+        const mouseX = (e.clientX - rect.left);
+        const mouseY = (e.clientY - rect.top);
         const x = Math.round((mouseX - MARGIN_L) / CELL_SIZE);
         const y = Math.round((mouseY - MARGIN_T) / CELL_SIZE);
 
