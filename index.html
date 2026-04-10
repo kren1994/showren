@@ -65,7 +65,7 @@
             box-sizing: border-box;
         }
         .board-controls button {
-            flex: 1; /* デフォルトの幅 */
+            flex: 1;
             padding: 12px 0;
             border: 1px solid #ccc;
             background: #f9f9f9;
@@ -77,10 +77,6 @@
         }
         .board-controls button:hover {
             background: #e9e9e9;
-        }
-        /* 左の読込ボタンを、右のA+座標ボタンの合計と同じ幅にして矢印をセンタリング */
-        .board-controls .btn-side-left {
-            flex: 2; 
         }
         
         textarea {
@@ -102,7 +98,6 @@
             box-shadow: 0 0 5px rgba(48, 128, 255, 0.5);
         }
 
-        /* ヒント非表示時のテキストエリアのスタイル */
         .hidden-hint {
             color: transparent !important;
             caret-color: transparent !important;
@@ -160,16 +155,15 @@
             <canvas id="boardCanvas"></canvas>
         </div>
         <div class="board-controls">
-            <!-- 読込ボタンを左端に配置し幅を2倍にする -->
-            <button class="load-btn btn-side-left" onclick="document.getElementById('fileInput').click()" style="background:#e0f0ff; border-color:#b0d0ff; color:#0055aa;">読込</button>
+            <!-- 読込ボタンと、レイアウト調整用の透明スペーサー -->
+            <button class="load-btn" onclick="document.getElementById('fileInput').click()" style="background:#e0f0ff; border-color:#b0d0ff; color:#0055aa;">読込</button>
+            <div style="flex: 1;"></div> <!-- 読込ボタンと同じ幅のスペース -->
             
-            <!-- 矢印ボタンが中央に来る -->
             <button onclick="goToPrevBranch()">&lt;&lt;</button>
             <button onclick="goBack()">&lt;</button>
             <button onclick="goNext()">&gt;</button>
             <button onclick="goToNextBranch()">&gt;&gt;</button>
             
-            <!-- 右端のボタン（各幅1で合計2になり、左の読込とバランスが取れる） -->
             <button id="toggleHintsBtn" onclick="toggleHints()">A</button>
             <button id="toggleCoordsBtn" onclick="toggleCoords()">座標</button>
             
@@ -267,7 +261,6 @@
         updateUI();
     }
 
-    // ヒント（ラベル、候補丸、コメント）の表示切替
     function toggleHints() {
         showHints = !showHints;
         document.getElementById('toggleHintsBtn').style.background = showHints ? "#f9f9f9" : "#ddd";
@@ -279,7 +272,6 @@
             commentArea.classList.add('hidden-hint');
             commentArea.readOnly = true;
         }
-        
         updateUI();
     }
 
@@ -350,12 +342,10 @@
             curr = tree[curr.parent];
         }
 
-        let stonePositions = {}; 
         let currentNode = tree[currentNodeId];
 
         for (let node of path) {
             let { sx, sy } = getScreenPos(node.x, node.y);
-            stonePositions[`${node.x},${node.y}`] = node.color;
             ctx.beginPath();
             ctx.arc(sx, sy, CELL_SIZE * 0.45, 0, Math.PI * 2);
             ctx.fillStyle = node.color === 1 ? '#000' : '#fff';
@@ -368,41 +358,41 @@
             ctx.fillText(node.moveNumber.toString(), sx, sy);
         }
         
-        // ヒント表示がONの時のみ、候補丸とラベルを描画
         if (showHints) {
+            // 次の手の候補（控えめな半透明グレー）
             for (let childId of currentNode.children) {
                 let child = tree[childId];
                 if (currentNode.labels && currentNode.labels[`${child.x},${child.y}`]) {
-                    continue;
+                    continue; // ラベルがある場所には丸を描画しない
                 }
                 let { sx, sy } = getScreenPos(child.x, child.y);
                 ctx.beginPath();
-                ctx.fillStyle = 'rgba(30, 144, 255, 0.9)'; 
+                ctx.fillStyle = 'rgba(128, 128, 128, 0.8)'; 
                 ctx.arc(sx, sy, 5, 0, Math.PI * 2);
                 ctx.fill();
             }
 
+            // 交点テキスト（グレーに統一、サイズ0.9倍化）
             if (currentNode.labels) {
                 for (let key in currentNode.labels) {
                     let [lx, ly] = key.split(',').map(Number);
                     let text = currentNode.labels[key];
                     if (!text) continue;
                     let { sx, sy } = getScreenPos(lx, ly);
-                    let colorAtPos = stonePositions[key];
                     
-                    ctx.font = `bold ${Math.floor(CELL_SIZE*0.48)}px Arial`;
+                    // フォントサイズを元の0.48から0.43（約0.9倍）に縮小
+                    ctx.font = `bold ${Math.floor(CELL_SIZE*0.43)}px Arial`;
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
 
-                    ctx.strokeStyle = '#fff';
-                    ctx.lineWidth = 3;
+                    // 視認性確保のための細い白枠（ハロ）
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+                    ctx.lineWidth = 2.5;
                     ctx.lineJoin = 'round';
                     ctx.strokeText(text, sx, sy);
 
-                    if (colorAtPos === 1) ctx.fillStyle = '#fff9c4'; 
-                    else if (colorAtPos === 2) ctx.fillStyle = '#b71c1c'; 
-                    else ctx.fillStyle = '#1a237e'; 
-                    
+                    // 文字色はすべてグレー
+                    ctx.fillStyle = '#555'; 
                     ctx.fillText(text, sx, sy);
                 }
             }
