@@ -51,7 +51,9 @@
             border-radius: 4px;
             box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
             cursor: pointer;
-            /* JS側でアスペクト比とサイズを制御します */
+            max-width: 100%; 
+            aspect-ratio: 1 / 1;
+            height: auto;
             display: block;
             margin: 0 auto;
             touch-action: none; 
@@ -63,7 +65,7 @@
             box-sizing: border-box;
         }
         .board-controls button {
-            flex: 1;
+            flex: 1; /* デフォルトの幅 */
             padding: 12px 0;
             border: 1px solid #ccc;
             background: #f9f9f9;
@@ -76,6 +78,11 @@
         .board-controls button:hover {
             background: #e9e9e9;
         }
+        /* 左の読込ボタンを、右のA+座標ボタンの合計と同じ幅にして矢印をセンタリング */
+        .board-controls .btn-side-left {
+            flex: 2; 
+        }
+        
         textarea {
             width: 100%;
             flex-grow: 1;
@@ -94,6 +101,16 @@
             border-color: #3080ff;
             box-shadow: 0 0 5px rgba(48, 128, 255, 0.5);
         }
+
+        /* ヒント非表示時のテキストエリアのスタイル */
+        .hidden-hint {
+            color: transparent !important;
+            caret-color: transparent !important;
+        }
+        .hidden-hint::placeholder {
+            color: transparent !important;
+        }
+
         .guide {
             font-size: 13px;
             color: #666;
@@ -143,13 +160,19 @@
             <canvas id="boardCanvas"></canvas>
         </div>
         <div class="board-controls">
+            <!-- 読込ボタンを左端に配置し幅を2倍にする -->
+            <button class="load-btn btn-side-left" onclick="document.getElementById('fileInput').click()" style="background:#e0f0ff; border-color:#b0d0ff; color:#0055aa;">読込</button>
+            
+            <!-- 矢印ボタンが中央に来る -->
             <button onclick="goToPrevBranch()">&lt;&lt;</button>
             <button onclick="goBack()">&lt;</button>
             <button onclick="goNext()">&gt;</button>
             <button onclick="goToNextBranch()">&gt;&gt;</button>
-            <button id="toggleLabelsBtn" onclick="toggleLabels()">A</button>
+            
+            <!-- 右端のボタン（各幅1で合計2になり、左の読込とバランスが取れる） -->
+            <button id="toggleHintsBtn" onclick="toggleHints()">A</button>
             <button id="toggleCoordsBtn" onclick="toggleCoords()">座標</button>
-            <button class="load-btn" onclick="document.getElementById('fileInput').click()" style="background:#e0f0ff; border-color:#b0d0ff; color:#0055aa;">読込</button>
+            
             <input type="file" id="fileInput" accept=".json" style="display:none;">
         </div>
     </div>
@@ -167,35 +190,31 @@
 <script>
     const BOARD_SIZE = 15;
     
-    // 描画用の変数群
     let CELL_SIZE = 40; 
     let MARGIN_L = 35; 
     let MARGIN_R = 15; 
     let MARGIN_T = 25; 
     let MARGIN_B = 35; 
 
-    // キャンバスのベースサイズは固定（レイアウトのガタつきを防ぐため）
-    const CANVAS_W = CELL_SIZE * (BOARD_SIZE - 1) + MARGIN_L + MARGIN_R; // 610
-    const CANVAS_H = CELL_SIZE * (BOARD_SIZE - 1) + MARGIN_T + MARGIN_B; // 620
+    const BASE_CANVAS_SIZE = CELL_SIZE * (BOARD_SIZE - 1) + MARGIN_L + MARGIN_R; 
+    
+    let CANVAS_W = BASE_CANVAS_SIZE;
+    let CANVAS_H = BASE_CANVAS_SIZE;
     
     const canvas = document.getElementById('boardCanvas');
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
 
-    let showLabels = true;
+    let showHints = true;
     let showCoords = true;
 
     function setupCanvas() {
-        // 解像度の設定
         canvas.width = CANVAS_W * dpr;
         canvas.height = CANVAS_H * dpr;
-        
-        // スマホ画面などで縮小された際に、アスペクト比を保ちながら高さを自動調整する
         canvas.style.maxWidth = CANVAS_W + 'px';
         canvas.style.width = '100%';
         canvas.style.height = 'auto';
         canvas.style.aspectRatio = `${CANVAS_W} / ${CANVAS_H}`;
-        
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
@@ -248,9 +267,19 @@
         updateUI();
     }
 
-    function toggleLabels() {
-        showLabels = !showLabels;
-        document.getElementById('toggleLabelsBtn').style.background = showLabels ? "#f9f9f9" : "#ddd";
+    // ヒント（ラベル、候補丸、コメント）の表示切替
+    function toggleHints() {
+        showHints = !showHints;
+        document.getElementById('toggleHintsBtn').style.background = showHints ? "#f9f9f9" : "#ddd";
+        
+        if (showHints) {
+            commentArea.classList.remove('hidden-hint');
+            commentArea.readOnly = false;
+        } else {
+            commentArea.classList.add('hidden-hint');
+            commentArea.readOnly = true;
+        }
+        
         updateUI();
     }
 
@@ -262,20 +291,15 @@
             CELL_SIZE = 40;
             MARGIN_L = 35; MARGIN_R = 15; MARGIN_T = 25; MARGIN_B = 35;
         } else {
-            // 座標を消す場合、キャンバスの枠サイズは変えずに中のマス目だけ拡大する
             const minMargin = 20;
-            const availableW = CANVAS_W - minMargin * 2;
-            const availableH = CANVAS_H - minMargin * 2;
-            CELL_SIZE = Math.min(availableW, availableH) / (BOARD_SIZE - 1);
-            
-            // 拡大したマス目が中央にくるように余白を再計算
-            MARGIN_L = (CANVAS_W - CELL_SIZE * (BOARD_SIZE - 1)) / 2;
+            const availableSize = BASE_CANVAS_SIZE - (minMargin * 2);
+            CELL_SIZE = availableSize / (BOARD_SIZE - 1);
+            MARGIN_L = (BASE_CANVAS_SIZE - CELL_SIZE * (BOARD_SIZE - 1)) / 2;
             MARGIN_R = MARGIN_L;
-            MARGIN_T = (CANVAS_H - CELL_SIZE * (BOARD_SIZE - 1)) / 2;
-            MARGIN_B = MARGIN_T;
+            MARGIN_T = MARGIN_L;
+            MARGIN_B = MARGIN_L;
         }
-        
-        setupCanvas(); // 変形防止のため再度セットアップ
+        setupCanvas(); 
         updateUI();
     }
 
@@ -344,40 +368,43 @@
             ctx.fillText(node.moveNumber.toString(), sx, sy);
         }
         
-        for (let childId of currentNode.children) {
-            let child = tree[childId];
-            if (showLabels && currentNode.labels && currentNode.labels[`${child.x},${child.y}`]) {
-                continue;
+        // ヒント表示がONの時のみ、候補丸とラベルを描画
+        if (showHints) {
+            for (let childId of currentNode.children) {
+                let child = tree[childId];
+                if (currentNode.labels && currentNode.labels[`${child.x},${child.y}`]) {
+                    continue;
+                }
+                let { sx, sy } = getScreenPos(child.x, child.y);
+                ctx.beginPath();
+                ctx.fillStyle = 'rgba(30, 144, 255, 0.9)'; 
+                ctx.arc(sx, sy, 5, 0, Math.PI * 2);
+                ctx.fill();
             }
-            let { sx, sy } = getScreenPos(child.x, child.y);
-            ctx.beginPath();
-            ctx.fillStyle = 'rgba(30, 144, 255, 0.9)'; 
-            ctx.arc(sx, sy, 5, 0, Math.PI * 2);
-            ctx.fill();
-        }
 
-        if (showLabels && currentNode.labels) {
-            for (let key in currentNode.labels) {
-                let [lx, ly] = key.split(',').map(Number);
-                let text = currentNode.labels[key];
-                if (!text) continue;
-                let { sx, sy } = getScreenPos(lx, ly);
-                let colorAtPos = stonePositions[key];
-                
-                ctx.font = `bold ${Math.floor(CELL_SIZE*0.48)}px Arial`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
+            if (currentNode.labels) {
+                for (let key in currentNode.labels) {
+                    let [lx, ly] = key.split(',').map(Number);
+                    let text = currentNode.labels[key];
+                    if (!text) continue;
+                    let { sx, sy } = getScreenPos(lx, ly);
+                    let colorAtPos = stonePositions[key];
+                    
+                    ctx.font = `bold ${Math.floor(CELL_SIZE*0.48)}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
 
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 3;
-                ctx.lineJoin = 'round';
-                ctx.strokeText(text, sx, sy);
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 3;
+                    ctx.lineJoin = 'round';
+                    ctx.strokeText(text, sx, sy);
 
-                if (colorAtPos === 1) ctx.fillStyle = '#fff9c4'; 
-                else if (colorAtPos === 2) ctx.fillStyle = '#b71c1c'; 
-                else ctx.fillStyle = '#1a237e'; 
-                
-                ctx.fillText(text, sx, sy);
+                    if (colorAtPos === 1) ctx.fillStyle = '#fff9c4'; 
+                    else if (colorAtPos === 2) ctx.fillStyle = '#b71c1c'; 
+                    else ctx.fillStyle = '#1a237e'; 
+                    
+                    ctx.fillText(text, sx, sy);
+                }
             }
         }
     }
@@ -400,8 +427,6 @@
 
     canvas.addEventListener('click', (e) => {
         const rect = canvas.getBoundingClientRect();
-        
-        // スケール補正（画面が縮小された場合でも正しくタップ判定するため）
         const scaleX = CANVAS_W / rect.width;
         const scaleY = CANVAS_H / rect.height;
         const mouseX = (e.clientX - rect.left) * scaleX;
