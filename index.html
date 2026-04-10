@@ -12,7 +12,6 @@
             padding: 10px;
             display: flex;
             justify-content: center;
-            /* ダブルタップズームを防止 */
             touch-action: manipulation; 
         }
         .container {
@@ -54,7 +53,6 @@
             max-width: 100%; 
             height: auto;
             display: block;
-            /* 盤面上での意図しない動作を防止 */
             touch-action: none; 
         }
         .board-controls {
@@ -71,7 +69,6 @@
             cursor: pointer;
             font-size: 14px;
             font-weight: bold;
-            /* ボタン連打時のズーム防止 */
             touch-action: manipulation; 
         }
         .board-controls button:hover {
@@ -94,6 +91,11 @@
             box-sizing: border-box;
             outline: none;
         }
+        /* 読み取り専用時の背景色を少し変える */
+        textarea[readonly] {
+            background-color: #fcfcfc;
+            color: #333;
+        }
         .guide {
             font-size: 13px;
             color: #666;
@@ -104,35 +106,35 @@
             border: 1px solid #eee;
         }
 
-        /* --- スマホ向け設定 (画面幅 799px 以下) --- */
-        @media (max-width: 799px) {
+        /* --- スマホ・iPad向け設定 (画面幅 1199px 以下) --- */
+        @media (max-width: 1199px) {
             body {
-                padding: 0; /* 本体の余白をなくす */
+                padding: 0;
             }
             .container {
-                padding: 5px; /* コンテナの余白を最小限に */
+                padding: 5px;
                 border-radius: 0;
                 box-shadow: none;
                 gap: 10px;
             }
             .guide {
-                display: none; /* ガイドテキスト（3行）を非表示 */
+                display: none; /* ガイド非表示 */
             }
             .left-pane, .right-pane {
                 max-width: 100%;
             }
             textarea {
-                min-height: 120px;
+                min-height: 250px; /* 1.5倍程度に高く設定 */
             }
         }
 
-        /* --- PC向け設定 (画面幅 800px 以上) --- */
-        @media (min-width: 800px) {
+        /* --- PC向け設定 (画面幅 1200px 以上) --- */
+        @media (min-width: 1200px) {
             .container {
                 flex-wrap: nowrap;
             }
             .left-pane {
-                width: 600px;
+                width: 564px; /* 右余白を削った分、少し幅を調整 */
                 flex: 0 0 auto;
             }
             .right-pane {
@@ -150,7 +152,7 @@
 <div class="container">
     <div class="left-pane">
         <div class="board-container">
-            <canvas id="boardCanvas" width="600" height="600"></canvas>
+            <canvas id="boardCanvas"></canvas>
         </div>
         <div class="board-controls">
             <button onclick="goToStart()">|&lt;</button>
@@ -170,21 +172,38 @@
             ・<b>Ctrl+S</b> で保存 / <b>Ctrl+O</b> で読込<br>
             ・<b>Ctrl+[</b> でコメント入力と盤面を行き来
         </div>
-        <textarea id="commentArea" placeholder="ここに局面のコメントを入力..."></textarea>
+        <textarea id="commentArea" placeholder="ここに局面のコメントを表示..."></textarea>
     </div>
 </div>
 
 <script>
     const BOARD_SIZE = 15;
     const CELL_SIZE = 36;
-    const MARGIN = 40;
-    const CANVAS_SIZE = CELL_SIZE * (BOARD_SIZE - 1) + MARGIN * 2;
+    const MARGIN_L = 40; // 左側（数字座標用）
+    const MARGIN_R = 20; // 右側（余白を半分に）
+    const MARGIN_T = 20; 
+    const MARGIN_B = 40; // 下側（アルファベット座標用）
+
+    // キャンバスのサイズ計算
+    const CANVAS_W = CELL_SIZE * (BOARD_SIZE - 1) + MARGIN_L + MARGIN_R;
+    const CANVAS_H = CELL_SIZE * (BOARD_SIZE - 1) + MARGIN_T + MARGIN_B;
     
     const canvas = document.getElementById('boardCanvas');
-    canvas.width = CANVAS_SIZE;
-    canvas.height = CANVAS_SIZE;
+    canvas.width = CANVAS_W;
+    canvas.height = CANVAS_H;
     const ctx = canvas.getContext('2d');
     const commentArea = document.getElementById('commentArea');
+
+    // スマホ・iPadならコメントを読み取り専用にする
+    function checkDevice() {
+        if (window.innerWidth <= 1199) {
+            commentArea.readOnly = true;
+        } else {
+            commentArea.readOnly = false;
+        }
+    }
+    window.addEventListener('resize', checkDevice);
+    checkDevice();
 
     let tree = {};
     let currentNodeId = 'root';
@@ -233,7 +252,10 @@
     }
 
     function getScreenPos(x, y) {
-        return { sx: MARGIN + x * CELL_SIZE, sy: MARGIN + y * CELL_SIZE };
+        return { 
+            sx: MARGIN_L + x * CELL_SIZE, 
+            sy: MARGIN_T + y * CELL_SIZE 
+        };
     }
 
     function drawBoard() {
@@ -244,17 +266,19 @@
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 1;
         for (let i = 0; i < BOARD_SIZE; i++) {
-            ctx.moveTo(MARGIN + i * CELL_SIZE, MARGIN);
-            ctx.lineTo(MARGIN + i * CELL_SIZE, MARGIN + (BOARD_SIZE - 1) * CELL_SIZE);
-            ctx.moveTo(MARGIN, MARGIN + i * CELL_SIZE);
-            ctx.lineTo(MARGIN + (BOARD_SIZE - 1) * CELL_SIZE, MARGIN + i * CELL_SIZE);
+            // 縦線
+            ctx.moveTo(MARGIN_L + i * CELL_SIZE, MARGIN_T);
+            ctx.lineTo(MARGIN_L + i * CELL_SIZE, MARGIN_T + (BOARD_SIZE - 1) * CELL_SIZE);
+            // 横線
+            ctx.moveTo(MARGIN_L, MARGIN_T + i * CELL_SIZE);
+            ctx.lineTo(MARGIN_L + (BOARD_SIZE - 1) * CELL_SIZE, MARGIN_T + i * CELL_SIZE);
         }
         ctx.stroke();
         const stars = [[3,3], [11,3], [7,7], [3,11], [11,11]];
         ctx.fillStyle = '#000';
         for (let [x, y] of stars) {
             ctx.beginPath();
-            ctx.arc(MARGIN + x * CELL_SIZE, MARGIN + y * CELL_SIZE, 3, 0, Math.PI * 2);
+            ctx.arc(MARGIN_L + x * CELL_SIZE, MARGIN_T + y * CELL_SIZE, 3, 0, Math.PI * 2);
             ctx.fill();
         }
         ctx.fillStyle = '#333';
@@ -262,8 +286,10 @@
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         for (let i = 0; i < BOARD_SIZE; i++) {
-            ctx.fillText(String.fromCharCode(65 + i), MARGIN + i * CELL_SIZE, canvas.height - 15);
-            ctx.fillText((BOARD_SIZE - i).toString(), 15, MARGIN + i * CELL_SIZE);
+            // 下側アルファベット (A-O)
+            ctx.fillText(String.fromCharCode(65 + i), MARGIN_L + i * CELL_SIZE, CANVAS_H - 15);
+            // 左側数字 (15-1)
+            ctx.fillText((BOARD_SIZE - i).toString(), 15, MARGIN_T + i * CELL_SIZE);
         }
     }
 
@@ -320,8 +346,8 @@
         const scaleY = canvas.height / rect.height;
         const mouseX = (e.clientX - rect.left) * scaleX;
         const mouseY = (e.clientY - rect.top) * scaleY;
-        const x = Math.round((mouseX - MARGIN) / CELL_SIZE);
-        const y = Math.round((mouseY - MARGIN) / CELL_SIZE);
+        const x = Math.round((mouseX - MARGIN_L) / CELL_SIZE);
+        const y = Math.round((mouseY - MARGIN_T) / CELL_SIZE);
 
         if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) return;
 
@@ -341,6 +367,10 @@
             if (n.x === x && n.y === y) return;
             tempId = n.parent;
         }
+
+        // 読み取り専用モード（スマホ等）の時は新しい手の追加を制限しない（検討用）
+        // もし閲覧のみにしたい場合はここで return する
+        
         pushUndo();
         let newNodeId = 'node_' + (nextNodeId++);
         tree[newNodeId] = {
@@ -360,7 +390,9 @@
     });
 
     commentArea.addEventListener('input', (e) => {
-        tree[currentNodeId].comment = e.target.value;
+        if (!commentArea.readOnly) {
+            tree[currentNodeId].comment = e.target.value;
+        }
     });
 
     function goToStart() { currentNodeId = 'root'; updateUI(); }
@@ -410,7 +442,7 @@
             if (e.key === '[') {
                 e.preventDefault();
                 if (isTextArea) commentArea.blur();
-                else commentArea.focus();
+                else if (!commentArea.readOnly) commentArea.focus();
                 return;
             }
             if (key === 'z') {
