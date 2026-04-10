@@ -51,8 +51,7 @@
             border-radius: 4px;
             box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
             cursor: pointer;
-            max-width: 100%; 
-            height: auto;
+            /* JS側でアスペクト比とサイズを制御します */
             display: block;
             margin: 0 auto;
             touch-action: none; 
@@ -168,14 +167,16 @@
 <script>
     const BOARD_SIZE = 15;
     
+    // 描画用の変数群
     let CELL_SIZE = 40; 
     let MARGIN_L = 35; 
     let MARGIN_R = 15; 
     let MARGIN_T = 25; 
     let MARGIN_B = 35; 
 
-    const CANVAS_W = CELL_SIZE * (BOARD_SIZE - 1) + MARGIN_L + MARGIN_R;
-    const CANVAS_H = CELL_SIZE * (BOARD_SIZE - 1) + MARGIN_T + MARGIN_B;
+    // キャンバスのベースサイズは固定（レイアウトのガタつきを防ぐため）
+    const CANVAS_W = CELL_SIZE * (BOARD_SIZE - 1) + MARGIN_L + MARGIN_R; // 610
+    const CANVAS_H = CELL_SIZE * (BOARD_SIZE - 1) + MARGIN_T + MARGIN_B; // 620
     
     const canvas = document.getElementById('boardCanvas');
     const ctx = canvas.getContext('2d');
@@ -185,13 +186,18 @@
     let showCoords = true;
 
     function setupCanvas() {
+        // 解像度の設定
         canvas.width = CANVAS_W * dpr;
         canvas.height = CANVAS_H * dpr;
-        canvas.style.width = CANVAS_W + 'px';
-        canvas.style.height = CANVAS_H + 'px';
+        
+        // スマホ画面などで縮小された際に、アスペクト比を保ちながら高さを自動調整する
+        canvas.style.maxWidth = CANVAS_W + 'px';
+        canvas.style.width = '100%';
+        canvas.style.height = 'auto';
+        canvas.style.aspectRatio = `${CANVAS_W} / ${CANVAS_H}`;
+        
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
-    setupCanvas();
 
     const commentArea = document.getElementById('commentArea');
 
@@ -207,6 +213,7 @@
         currentNodeId = 'root';
         nextNodeId = 1;
         undoStack = [];
+        setupCanvas();
         updateUI();
     }
 
@@ -255,15 +262,20 @@
             CELL_SIZE = 40;
             MARGIN_L = 35; MARGIN_R = 15; MARGIN_T = 25; MARGIN_B = 35;
         } else {
+            // 座標を消す場合、キャンバスの枠サイズは変えずに中のマス目だけ拡大する
             const minMargin = 20;
             const availableW = CANVAS_W - minMargin * 2;
             const availableH = CANVAS_H - minMargin * 2;
             CELL_SIZE = Math.min(availableW, availableH) / (BOARD_SIZE - 1);
+            
+            // 拡大したマス目が中央にくるように余白を再計算
             MARGIN_L = (CANVAS_W - CELL_SIZE * (BOARD_SIZE - 1)) / 2;
             MARGIN_R = MARGIN_L;
             MARGIN_T = (CANVAS_H - CELL_SIZE * (BOARD_SIZE - 1)) / 2;
             MARGIN_B = MARGIN_T;
         }
+        
+        setupCanvas(); // 変形防止のため再度セットアップ
         updateUI();
     }
 
@@ -356,16 +368,14 @@
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
 
-                // ホワイトの縁取り（ハロ）を描画
                 ctx.strokeStyle = '#fff';
                 ctx.lineWidth = 3;
                 ctx.lineJoin = 'round';
                 ctx.strokeText(text, sx, sy);
 
-                // テキスト本体の描画
-                if (colorAtPos === 1) ctx.fillStyle = '#fff9c4'; // 黒石：パステルイエロー（ゴールド調）
-                else if (colorAtPos === 2) ctx.fillStyle = '#b71c1c'; // 白石：ディープガーネット（深い赤）
-                else ctx.fillStyle = '#1a237e'; // 盤面：インディゴ（濃紺）
+                if (colorAtPos === 1) ctx.fillStyle = '#fff9c4'; 
+                else if (colorAtPos === 2) ctx.fillStyle = '#b71c1c'; 
+                else ctx.fillStyle = '#1a237e'; 
                 
                 ctx.fillText(text, sx, sy);
             }
@@ -390,10 +400,16 @@
 
     canvas.addEventListener('click', (e) => {
         const rect = canvas.getBoundingClientRect();
-        const mouseX = (e.clientX - rect.left);
-        const mouseY = (e.clientY - rect.top);
+        
+        // スケール補正（画面が縮小された場合でも正しくタップ判定するため）
+        const scaleX = CANVAS_W / rect.width;
+        const scaleY = CANVAS_H / rect.height;
+        const mouseX = (e.clientX - rect.left) * scaleX;
+        const mouseY = (e.clientY - rect.top) * scaleY;
+        
         const x = Math.round((mouseX - MARGIN_L) / CELL_SIZE);
         const y = Math.round((mouseY - MARGIN_T) / CELL_SIZE);
+
         if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) return;
 
         if (e.ctrlKey) {
