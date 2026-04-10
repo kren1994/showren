@@ -64,7 +64,7 @@
         <div class="board-container"><canvas id="boardCanvas"></canvas></div>
         <div class="board-controls">
             <div class="ctrl-left">
-                <button class="load-btn" onclick="document.getElementById('fileInput').click()" style="background:#e0f0ff; border-color:#b0d0ff; color:#0055aa;">読込</button>
+                <button class="load-btn" onclick="openFile()" style="background:#e0f0ff; border-color:#b0d0ff; color:#0055aa;">読込</button>
             </div>
             <div class="ctrl-center">
                 <button onclick="goToPrevBranch()">&lt;&lt;</button>
@@ -81,9 +81,9 @@
     </div>
     <div class="right-pane">
         <div class="guide">
-            ・<b>Delete</b> で最新手を削除 / <b>Ctrl+Z</b> でUndo<br>
+            ・<b>Delete</b> で 1 手削除 / <b>Ctrl+Z</b> で Undo<br>
             ・<b>Ctrl+S</b> で保存 / <b>Ctrl+O</b> で読込<br>
-            ・<b>Ctrl+[</b> でコメント入力切替
+            ・<b>Ctrl+[</b> でコメント入力切替 / <b>Ctrl+F</b> でコメント表示切替
         </div>
         <textarea id="commentArea" placeholder="ここに局面のコメントを入力..."></textarea>
     </div>
@@ -313,7 +313,7 @@
             const k = e.key.toLowerCase();
             if (e.key === '[') { e.preventDefault(); commentArea.focus(); }
             else if (k === 'z') { e.preventDefault(); undo(); } else if (k === 's') { e.preventDefault(); saveKifu(); }
-            else if (k === 'o') { e.preventDefault(); document.getElementById('fileInput').click(); } return;
+            else if (k === 'o') { e.preventDefault(); openFile(); } else if (k === 'f') { e.preventDefault(); toggleHints(); } return;
         }
         switch(e.key) {
             case 'h': e.preventDefault(); goToPrevBranch(); break; 
@@ -325,19 +325,45 @@
             case 'Delete': deleteCurrentNode(); break;
         }
     });
-    function saveKifu() {
-        const data = { tree, posDb, currentNodeId, nextNodeId };
-        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
+    let fileHandle = null;
+
+    async function openFile() {
+        if (window.showOpenFilePicker) {
+            try {
+                const [handle] = await window.showOpenFilePicker({ types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
+                fileHandle = handle;
+                const file = await handle.getFile();
+                loadFromText(await file.text());
+            } catch(e) { if (e.name !== 'AbortError') alert('読込失敗'); }
+        } else {
+            document.getElementById('fileInput').click();
+        }
+    }
+
+    function loadFromText(text) {
+        try {
+            const d = JSON.parse(text);
+            tree = d.tree; posDb = d.posDb || {}; currentNodeId = d.currentNodeId; nextNodeId = d.nextNodeId; undoStack = []; updateUI();
+        } catch(err) { alert('読込失敗'); }
+    }
+
+    async function saveKifu() {
+        const json = JSON.stringify({ tree, posDb, currentNodeId, nextNodeId });
+        if (fileHandle) {
+            try {
+                const writable = await fileHandle.createWritable();
+                await writable.write(json); await writable.close(); return;
+            } catch(e) { /* fall through */ }
+        }
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
         a.download = `renju_${new Date().getTime()}.json`; a.click();
     }
+
     document.getElementById('fileInput').addEventListener('change', (e) => {
         const file = e.target.files[0]; if (!file) return;
-        const reader = new FileReader(); reader.onload = (e) => {
-            try {
-                const d = JSON.parse(e.target.result);
-                tree = d.tree; posDb = d.posDb || {}; currentNodeId = d.currentNodeId; nextNodeId = d.nextNodeId; undoStack = []; updateUI();
-            } catch(err) { alert("読込失敗"); }
-        }; reader.readAsText(file); e.target.value = '';
+        fileHandle = null;
+        const reader = new FileReader(); reader.onload = (ev) => loadFromText(ev.target.result);
+        reader.readAsText(file); e.target.value = '';
     });
     canvas.addEventListener('contextmenu', e => { e.preventDefault(); goBack(); });
     initGame();
