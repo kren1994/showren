@@ -483,6 +483,11 @@
         e.preventDefault();
         e.returnValue = '';
     });
+    commentArea.addEventListener('focus', (e) => {
+        if (navigator.maxTouchPoints > 0) {
+            e.target.blur();
+        }
+    });
     initGame();
 </script>
 </body>
