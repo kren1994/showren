@@ -262,10 +262,6 @@
         node.children.push(nid); node.lastSelectedChild = nid; currentNodeId = nid; updateUI();
     });
 
-    commentArea.addEventListener('input', () => {
-        commentArea.style.height = 'auto';
-        commentArea.style.height = commentArea.scrollHeight + 'px';
-    });
     commentArea.addEventListener('input', (e) => {
         const { key } = getCanonicalInfo(currentNodeId);
         if (!posDb[key]) posDb[key] = { comment: "", labels: {}, nextMoves: {} };
