@@ -87,7 +87,7 @@
             ・<b>Ctrl+S</b> で保存 / <b>Ctrl+O</b> で読込<br>
             ・<b>Ctrl+;</b> でコメント入力切替 / <b>Ctrl+F</b> でコメント表示切替
         </div>
-        <textarea id="commentArea" placeholder="..."></textarea>
+        <textarea id="commentArea"></textarea>
     </div>
 </div>
 
@@ -468,6 +468,17 @@
         e.preventDefault();
         e.returnValue = '';
     });
+    function updateCommentEditable() {
+        const isMobile = window.matchMedia('(max-width: 599px)').matches;
+        commentArea.readOnly = isMobile;
+        if (isMobile) {
+            commentArea.placeholder = '';
+        } else {
+            commentArea.placeholder = '...';
+        }
+    }
+    updateCommentEditable();
+    window.addEventListener('resize', updateCommentEditable);
     initGame();
 </script>
 </body>
