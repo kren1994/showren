@@ -267,6 +267,44 @@
         if (!posDb[key]) posDb[key] = { comment: "", labels: {}, nextMoves: {} };
         posDb[key].comment = e.target.value;
     });
+    commentArea.addEventListener('keydown', (e) => {
+        // コメント欄にフォーカスがあるときだけ有効
+        if (document.activeElement !== commentArea) return;
+        if (!e.ctrlKey) return;
+
+        const start = commentArea.selectionStart;
+        const end = commentArea.selectionEnd;
+        const value = commentArea.value;
+
+        // Ctrl+J → 改行
+        if (e.key === 'j') {
+            e.preventDefault();
+            insertText('\n');
+        }
+
+        // Ctrl+H → 1文字削除（Backspace）
+        else if (e.key === 'h') {
+            e.preventDefault();
+            if (start === end && start > 0) {
+                commentArea.value = value.slice(0, start - 1) + value.slice(end);
+                setCursor(start - 1);
+            } else {
+                // 選択範囲削除
+                commentArea.value = value.slice(0, start) + value.slice(end);
+                setCursor(start);
+            }
+        }
+
+        function insertText(text) {
+            commentArea.value = value.slice(0, start) + text + value.slice(end);
+            setCursor(start + text.length);
+        }
+
+        function setCursor(pos) {
+            commentArea.selectionStart = commentArea.selectionEnd = pos;
+            commentArea.dispatchEvent(new Event('input')); // ←既存ロジック更新
+        }
+    });
 
     function toggleHints() { showHints = !showHints; document.getElementById('toggleHintsBtn').style.background = showHints ? "#f9f9f9" : "#ddd"; commentArea.classList.toggle('hidden-hint', !showHints); commentArea.readOnly = !showHints; updateUI(); }
     function toggleCoords() {
@@ -408,6 +446,10 @@
         reader.readAsText(file);
 
         fileHandle = null; // 既存のファイルハンドルは無効化
+    });
+    window.addEventListener('beforeunload', (e) => {
+        e.preventDefault();
+        e.returnValue = '';
     });
     initGame();
 </script>
