@@ -93,11 +93,11 @@
 
 <script>
     const BOARD_SIZE = 15;
-    let CELL_SIZE = 40, MARGIN_L = 35, MARGIN_R = 15, MARGIN_T = 25, MARGIN_B = 35; 
+    let CELL_SIZE = 40, MARGIN_L = 35, MARGIN_R = 25, MARGIN_T = 25, MARGIN_B = 35; 
     if (window.innerWidth <= 599) {
         MARGIN_T += 5;
     }
-    const LOGICAL_W = 610, LOGICAL_H = 620; 
+    const LOGICAL_W = 620, LOGICAL_H = 620; 
 
     const canvas = document.getElementById('boardCanvas');
     const ctx = canvas.getContext('2d');
@@ -341,8 +341,8 @@
     }
     function toggleCoords() {
         showCoords = !showCoords; document.getElementById('toggleCoordsBtn').style.background = showCoords ? "#f9f9f9" : "#ddd";
-        if (showCoords) { CELL_SIZE = 40; MARGIN_L = 35; MARGIN_R = 15; MARGIN_T = 25; MARGIN_B = 35; }
-        else { CELL_SIZE = (610-40)/14; MARGIN_L = MARGIN_R = MARGIN_T = MARGIN_B = 20; }
+        if (showCoords) { CELL_SIZE = 40; MARGIN_L = 35; MARGIN_R = 25; MARGIN_T = 25; MARGIN_B = 35; }
+        else { CELL_SIZE = (620-40)/14; MARGIN_L = MARGIN_R = MARGIN_T = MARGIN_B = 20; }
         updateUI();
     }
     function goBack() { if (tree[currentNodeId].parent) { currentNodeId = tree[currentNodeId].parent; updateUI(); } }
