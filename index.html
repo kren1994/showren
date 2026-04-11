@@ -354,14 +354,26 @@
 
     async function saveKifu() {
         const json = JSON.stringify({ tree, posDb, currentNodeId, nextNodeId });
-        if (fileHandle) {
-            try {
-                const writable = await fileHandle.createWritable();
-                await writable.write(json); await writable.close(); return;
-            } catch(e) { /* fall through */ }
+
+        try {
+            // fileHandleがなければ新規取得
+            if (!fileHandle) {
+                fileHandle = await window.showSaveFilePicker({
+                    suggestedName: `renju_${Date.now()}.json`,
+                    types: [{
+                        description: 'JSONファイル',
+                        accept: { 'application/json': ['.json'] }
+                    }]
+                });
+            }
+
+            const writable = await fileHandle.createWritable();
+            await writable.write(json);
+            await writable.close();
+
+        } catch (e) {
+            // キャンセル or エラー → 何もしない
         }
-        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
-        a.download = `renju_${new Date().getTime()}.json`; a.click();
     }
 
     document.getElementById('fileInput').addEventListener('change', (e) => {
@@ -372,6 +384,31 @@
     });
     canvas.addEventListener('contextmenu', e => { e.preventDefault(); goBack(); });
     document.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
+
+    // --- ドラッグ＆ドロップ読み込み ---
+    document.addEventListener('dragover', (e) => {
+        e.preventDefault(); // これがないと drop できない
+    });
+
+    document.addEventListener('drop', (e) => {
+        e.preventDefault();
+
+        const file = e.dataTransfer.files[0];
+        if (!file) return;
+
+        if (!file.name.endsWith('.json')) {
+            alert('JSONファイルをドロップしてください');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            loadFromText(ev.target.result);
+        };
+        reader.readAsText(file);
+
+        fileHandle = null; // 既存のファイルハンドルは無効化
+    });
     initGame();
 </script>
 </body>
