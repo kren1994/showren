@@ -94,6 +94,9 @@
 <script>
     const BOARD_SIZE = 15;
     let CELL_SIZE = 40, MARGIN_L = 35, MARGIN_R = 15, MARGIN_T = 25, MARGIN_B = 35; 
+    if (window.innerWidth <= 599) {
+        MARGIN_T += 5;
+    }
     const LOGICAL_W = 610, LOGICAL_H = 620; 
 
     const canvas = document.getElementById('boardCanvas');
