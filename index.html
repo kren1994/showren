@@ -262,6 +262,10 @@
         node.children.push(nid); node.lastSelectedChild = nid; currentNodeId = nid; updateUI();
     });
 
+    commentArea.addEventListener('input', () => {
+        commentArea.style.height = 'auto';
+        commentArea.style.height = commentArea.scrollHeight + 'px';
+    });
     commentArea.addEventListener('input', (e) => {
         const { key } = getCanonicalInfo(currentNodeId);
         if (!posDb[key]) posDb[key] = { comment: "", labels: {}, nextMoves: {} };
@@ -390,6 +394,18 @@
         } catch(err) { alert('読込失敗'); }
     }
 
+    function showToast(msg) {
+        const el = document.createElement('div');
+        el.textContent = msg;
+        el.style = `
+            position:fixed; bottom:20px; right:20px;
+            background:#333; color:#fff; padding:8px 12px;
+            border-radius:6px; opacity:0.9;
+        `;
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 1500);
+    }
+
     async function saveKifu() {
         const json = JSON.stringify({ tree, posDb, currentNodeId, nextNodeId });
 
@@ -409,6 +425,7 @@
             await writable.write(json);
             await writable.close();
 
+            showToast('保存しました');
         } catch (e) {
             // キャンセル or エラー → 何もしない
         }
