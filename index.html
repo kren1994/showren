@@ -138,12 +138,17 @@
         }
     }
 
+    const canonicalCache = {};
+    let cacheSize = 0;
+    const MAX_CACHE = 5000;
     function getCanonicalInfo(nodeId) {
+        if (canonicalCache[nodeId]) return canonicalCache[nodeId];
+
         let grid = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0));
         let curr = tree[nodeId];
         while (curr && curr.id !== 'root') { grid[curr.x][curr.y] = curr.color; curr = tree[curr.parent]; }
         const nextColor = tree[nodeId].moveNumber % 2 === 0 ? 1 : 2;
-        let variants = [];
+        let best = null;
         for (let i = 0; i < 8; i++) {
             let s = "";
             for (let y = 0; y < BOARD_SIZE; y++) {
@@ -151,10 +156,18 @@
                     const [tx, ty] = transform(x, y, i); s += grid[tx][ty];
                 }
             }
-            variants.push({ key: s + "_" + nextColor, index: i });
+            const key = s + "_" + nextColor;
+            if (!best || key < best.key) {
+                best = { key, index: i };
+            }
         }
-        variants.sort((a, b) => a.key.localeCompare(b.key));
-        return variants[0];
+        canonicalCache[nodeId] = best;
+        cacheSize++;
+        if (cacheSize > MAX_CACHE) {
+            for (let k in canonicalCache) delete canonicalCache[k];
+            cacheSize = 0;
+        }
+        return best;
     }
 
     function updateUI() {
