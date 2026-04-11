@@ -85,7 +85,7 @@
         <div class="guide">
             ・<b>Delete</b> で 1 手削除 / <b>Ctrl+Z</b> で Undo<br>
             ・<b>Ctrl+S</b> で保存 / <b>Ctrl+O</b> で読込<br>
-            ・<b>Ctrl+[</b> でコメント入力切替 / <b>Ctrl+F</b> でコメント表示切替
+            ・<b>Ctrl+;</b> でコメント入力切替 / <b>Ctrl+F</b> でコメント表示切替
         </div>
         <textarea id="commentArea" placeholder="..."></textarea>
     </div>
@@ -313,10 +313,10 @@
     }
 
     document.addEventListener('keydown', (e) => {
-        if (document.activeElement === commentArea) { if (e.ctrlKey && e.key === '[') { e.preventDefault(); commentArea.blur(); } return; }
+        if (document.activeElement === commentArea) { if (e.ctrlKey && e.key === ';') { e.preventDefault(); commentArea.blur(); } return; }
         if (e.ctrlKey || e.metaKey) {
             const k = e.key.toLowerCase();
-            if (e.key === '[') { e.preventDefault(); commentArea.focus(); }
+            if (e.key === ';') { e.preventDefault(); commentArea.focus(); }
             else if (k === 'z') { e.preventDefault(); undo(); } else if (k === 's') { e.preventDefault(); saveKifu(); }
             else if (k === 'o') { e.preventDefault(); openFile(); } else if (k === 'f') { e.preventDefault(); toggleHints(); } return;
         }
