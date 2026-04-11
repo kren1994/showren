@@ -224,6 +224,18 @@
 
     function pushUndo() { undoStack.push(JSON.stringify({ tree, posDb, currentNodeId, nextNodeId })); if (undoStack.length > 50) undoStack.shift(); }
 
+    function updateCommentEditable() {
+        const isMobile = window.matchMedia('(max-width: 599px)').matches;
+        commentArea.readOnly = isMobile || !showHints;
+        if (isMobile) {
+            commentArea.placeholder = '';
+        } else {
+            commentArea.placeholder = '...';
+        }
+    }
+    updateCommentEditable();
+    window.addEventListener('resize', updateCommentEditable);
+
     canvas.addEventListener('click', (e) => {
         const rect = canvas.getBoundingClientRect();
         const scaleX = LOGICAL_W / rect.width, scaleY = LOGICAL_H / rect.height;
@@ -306,7 +318,14 @@
         }
     });
 
-    function toggleHints() { showHints = !showHints; document.getElementById('toggleHintsBtn').style.background = showHints ? "#f9f9f9" : "#ddd"; commentArea.classList.toggle('hidden-hint', !showHints); commentArea.readOnly = !showHints; updateUI(); }
+    function toggleHints() {
+        showHints = !showHints;
+        document.getElementById('toggleHintsBtn').style.background =
+            showHints ? "#f9f9f9" : "#ddd";
+        commentArea.classList.toggle('hidden-hint', !showHints);
+        updateUI();
+        updateCommentEditable();
+    }
     function toggleCoords() {
         showCoords = !showCoords; document.getElementById('toggleCoordsBtn').style.background = showCoords ? "#f9f9f9" : "#ddd";
         if (showCoords) { CELL_SIZE = 40; MARGIN_L = 35; MARGIN_R = 15; MARGIN_T = 25; MARGIN_B = 35; }
@@ -464,17 +483,6 @@
         e.preventDefault();
         e.returnValue = '';
     });
-    function updateCommentEditable() {
-        const isMobile = window.matchMedia('(max-width: 599px)').matches;
-        commentArea.readOnly = isMobile;
-        if (isMobile) {
-            commentArea.placeholder = '';
-        } else {
-            commentArea.placeholder = '...';
-        }
-    }
-    updateCommentEditable();
-    window.addEventListener('resize', updateCommentEditable);
     initGame();
 </script>
 </body>
