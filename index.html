@@ -143,6 +143,17 @@
         }
     }
 
+    // 225トリット(3値)を5トリット/バイトで45バイトに詰めてbase64url化 → 60文字
+    function encodeBoard(s, color) {
+        const bytes = new Uint8Array(45);
+        for (let i = 0; i < 45; i++) {
+            let v = 0;
+            for (let j = 0; j < 5; j++) v = v * 3 + +s[i * 5 + j];
+            bytes[i] = v;
+        }
+        return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '') + color;
+    }
+
     const canonicalCache = {};
     let cacheSize = 0;
     const MAX_CACHE = 5000;
@@ -153,7 +164,7 @@
         let curr = tree[nodeId];
         while (curr && curr.id !== 'root') { grid[curr.x][curr.y] = curr.color; curr = tree[curr.parent]; }
         const nextColor = tree[nodeId].moveNumber % 2 === 0 ? 1 : 2;
-        let best = null;
+        let bestS = null, best = null;
         for (let i = 0; i < 8; i++) {
             let s = "";
             for (let y = 0; y < BOARD_SIZE; y++) {
@@ -161,10 +172,7 @@
                     const [tx, ty] = transform(x, y, i); s += grid[tx][ty];
                 }
             }
-            const key = s + "_" + nextColor;
-            if (!best || key < best.key) {
-                best = { key, index: i };
-            }
+            if (!bestS || s < bestS) { bestS = s; best = { key: encodeBoard(s, nextColor), index: i }; }
         }
         canonicalCache[nodeId] = best;
         cacheSize++;
