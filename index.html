@@ -237,17 +237,16 @@
 
     function pushUndo() { undoStack.push(JSON.stringify({ tree, posDb, currentNodeId, nextNodeId })); if (undoStack.length > 50) undoStack.shift(); }
 
+    function isTouchMain() {
+        return window.matchMedia('(pointer: coarse)').matches;
+    }
+
     function updateCommentEditable() {
-        const isMobile = window.matchMedia('(max-width: 599px)').matches;
-        commentArea.readOnly = isMobile || !showHints;
-        if (isMobile) {
-            commentArea.placeholder = '';
-        } else {
-            commentArea.placeholder = '...';
-        }
+        commentArea.readOnly = isTouchMain() || !showHints;
+        commentArea.placeholder = isTouchMain() ? '' : '...';
     }
     updateCommentEditable();
-    window.addEventListener('resize', updateCommentEditable);
+    window.matchMedia('(pointer: coarse)').addEventListener('change', updateCommentEditable);
 
     canvas.addEventListener('click', (e) => {
         const rect = canvas.getBoundingClientRect();
@@ -327,7 +326,7 @@
 
         function setCursor(pos) {
             commentArea.selectionStart = commentArea.selectionEnd = pos;
-            commentArea.dispatchEvent(new Event('input')); // ←既存ロジック更新
+            commentArea.dispatchEvent(new Event('input'));
         }
     });
 
@@ -466,7 +465,7 @@
         reader.readAsText(file); e.target.value = '';
     });
     canvas.addEventListener('contextmenu', e => { e.preventDefault(); goBack(); });
-    document.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
+    if (isTouchMain()) document.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
 
     // --- ドラッグ＆ドロップ読み込み ---
     document.addEventListener('dragover', (e) => {
@@ -497,9 +496,7 @@
         e.returnValue = '';
     });
     commentArea.addEventListener('focus', (e) => {
-        if (navigator.maxTouchPoints > 0) {
-            e.target.blur();
-        }
+        if (isTouchMain()) e.target.blur();
     });
     initGame();
 </script>
