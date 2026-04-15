@@ -470,7 +470,7 @@
         reader.readAsText(file); e.target.value = '';
     });
     canvas.addEventListener('contextmenu', e => { e.preventDefault(); goBack(); });
-    if (isTouchMain()) document.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
+    if (isTouchMain()) document.addEventListener('touchmove', (e) => { if (!commentArea.contains(e.target)) e.preventDefault(); }, { passive: false });
 
     // --- ドラッグ＆ドロップ読み込み ---
     document.addEventListener('dragover', (e) => {
