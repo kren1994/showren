@@ -110,7 +110,7 @@
     const commentArea = document.getElementById('commentArea');
 
     let tree = {}, posDb = {}; 
-    let currentNodeId = 'root', nextNodeId = 1, undoStack = []; 
+    let currentNodeId = 'r', nextNodeId = 1, undoStack = []; 
     let showHints = true, showCoords = true;
 
     function setupCanvas() {
@@ -120,8 +120,8 @@
     }
 
     function initGame() {
-        tree = { 'root': { id: 'root', parent: null, children: [], x: null, y: null, color: 0, moveNumber: 0 } };
-        posDb = {}; currentNodeId = 'root'; nextNodeId = 1; undoStack = [];
+        tree = { 'r': { i: 'r', p: null, c: [], x: null, y: null, o: 0, m: 0 } };
+        posDb = {}; currentNodeId = 'r'; nextNodeId = 1; undoStack = [];
         setupCanvas(); updateUI();
     }
 
@@ -162,8 +162,8 @@
 
         let grid = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0));
         let curr = tree[nodeId];
-        while (curr && curr.id !== 'root') { grid[curr.x][curr.y] = curr.color; curr = tree[curr.parent]; }
-        const nextColor = tree[nodeId].moveNumber % 2 === 0 ? 1 : 2;
+        while (curr && curr.i !== 'r') { grid[curr.x][curr.y] = curr.o; curr = tree[curr.p]; }
+        const nextColor = tree[nodeId].m % 2 === 0 ? 1 : 2;
         let bestS = null, best = null;
         for (let i = 0; i < 8; i++) {
             let s = "";
@@ -186,8 +186,8 @@
     function updateUI() {
         drawBoard();
         const { key, index } = getCanonicalInfo(currentNodeId);
-        const data = posDb[key] || { comment: "", labels: {}, nextMoves: {} };
-        commentArea.value = data.comment || "";
+        const data = posDb[key] || { c: "", l: {}, n: {} };
+        commentArea.value = data.c || "";
         drawStonesAndHighlights(data, index);
     }
 
@@ -214,41 +214,41 @@
 
     function drawStonesAndHighlights(data, bestI) {
         let path = []; let curr = tree[currentNodeId];
-        while (curr && curr.id !== 'root') { path.unshift(curr); curr = tree[curr.parent]; }
+        while (curr && curr.i !== 'r') { path.unshift(curr); curr = tree[curr.p]; }
         for (let node of path) {
             let sx = MARGIN_L + node.x * CELL_SIZE, sy = MARGIN_T + node.y * CELL_SIZE;
             ctx.beginPath(); ctx.arc(sx, sy, CELL_SIZE * 0.45, 0, Math.PI * 2);
-            ctx.fillStyle = node.color === 1 ? '#000' : '#fff'; ctx.fill();
+            ctx.fillStyle = node.o === 1 ? '#000' : '#fff'; ctx.fill();
             ctx.lineWidth = 1; ctx.strokeStyle = '#333'; ctx.stroke();
-            ctx.fillStyle = node.color === 1 ? '#fff' : '#000';
+            ctx.fillStyle = node.o === 1 ? '#fff' : '#000';
             ctx.font = `bold ${Math.floor(CELL_SIZE*0.35)}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText(node.moveNumber.toString(), sx, sy);
+            ctx.fillText(node.m.toString(), sx, sy);
         }
 
         if (showHints) {
-            if (data.nextMoves) {
-                for (let key in data.nextMoves) {
+            if (data.n) {
+                for (let key in data.n) {
                     let [cx, cy] = key.split(',').map(Number);
                     let [px, py] = transform(cx, cy, bestI);
-                    if (data.labels && data.labels[`${cx},${cy}`]) continue;
+                    if (data.l && data.l[`${cx},${cy}`]) continue;
                     ctx.beginPath(); ctx.fillStyle = 'rgba(128, 128, 128, 0.6)'; 
                     ctx.arc(MARGIN_L + px * CELL_SIZE, MARGIN_T + py * CELL_SIZE, 5, 0, Math.PI * 2); ctx.fill();
                 }
             }
-            if (data.labels) {
-                for (let key in data.labels) {
+            if (data.l) {
+                for (let key in data.l) {
                     let [cx, cy] = key.split(',').map(Number);
                     let [px, py] = transform(cx, cy, bestI);
                     let sx = MARGIN_L + px * CELL_SIZE, sy = MARGIN_T + py * CELL_SIZE;
                     ctx.font = `bold ${Math.floor(CELL_SIZE*0.43)}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)'; ctx.lineWidth = 2.5; ctx.strokeText(data.labels[key], sx, sy);
-                    ctx.fillStyle = '#555'; ctx.fillText(data.labels[key], sx, sy);
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)'; ctx.lineWidth = 2.5; ctx.strokeText(data.l[key], sx, sy);
+                    ctx.fillStyle = '#555'; ctx.fillText(data.l[key], sx, sy);
                 }
             }
         }
     }
 
-    function pushUndo() { undoStack.push(JSON.stringify({ tree, posDb, currentNodeId, nextNodeId })); if (undoStack.length > 50) undoStack.shift(); }
+    function pushUndo() { undoStack.push(JSON.stringify({ t: tree, p: posDb, c: currentNodeId, n: nextNodeId })); if (undoStack.length > 50) undoStack.shift(); }
 
     function isTouchMain() {
         return window.matchMedia('(pointer: coarse)').matches;
@@ -273,36 +273,36 @@
         const [cx, cy] = inverseTransform(px, py, index);
 
         if (e.ctrlKey) {
-            if (!posDb[key]) posDb[key] = { comment: "", labels: {}, nextMoves: {} };
-            if (!posDb[key].labels) posDb[key].labels = {};
-            let currentText = posDb[key].labels[`${cx},${cy}`] || "";
+            if (!posDb[key]) posDb[key] = { c: "", l: {}, n: {} };
+            if (!posDb[key].l) posDb[key].l = {};
+            let currentText = posDb[key].l[`${cx},${cy}`] || "";
             let newText = prompt("交点テキストを入力:", currentText);
             if (newText !== null) {
-                pushUndo(); if (newText === "") delete posDb[key].labels[`${cx},${cy}`]; else posDb[key].labels[`${cx},${cy}`] = newText;
+                pushUndo(); if (newText === "") delete posDb[key].l[`${cx},${cy}`]; else posDb[key].l[`${cx},${cy}`] = newText;
                 updateUI();
             }
             return;
         }
 
         let node = tree[currentNodeId];
-        for (let cid of node.children) { if (tree[cid].x === px && tree[cid].y === py) { if (!posDb[key]) posDb[key] = { comment: "", labels: {}, nextMoves: {} }; if (!posDb[key].nextMoves) posDb[key].nextMoves = {}; posDb[key].nextMoves[`${cx},${cy}`] = true; node.lastSelectedChild = cid; currentNodeId = cid; updateUI(); return; } }
+        for (let cid of node.c) { if (tree[cid].x === px && tree[cid].y === py) { if (!posDb[key]) posDb[key] = { c: "", l: {}, n: {} }; if (!posDb[key].n) posDb[key].n = {}; posDb[key].n[`${cx},${cy}`] = 1; node.l = cid; currentNodeId = cid; updateUI(); return; } }
         let temp = currentNodeId;
-        while (temp !== 'root') { if (tree[temp].x === px && tree[temp].y === py) return; temp = tree[temp].parent; }
+        while (temp !== 'r') { if (tree[temp].x === px && tree[temp].y === py) return; temp = tree[temp].p; }
         
         pushUndo();
-        if (!posDb[key]) posDb[key] = { comment: "", labels: {}, nextMoves: {} };
-        if (!posDb[key].nextMoves) posDb[key].nextMoves = {};
-        posDb[key].nextMoves[`${cx},${cy}`] = true;
+        if (!posDb[key]) posDb[key] = { c: "", l: {}, n: {} };
+        if (!posDb[key].n) posDb[key].n = {};
+        posDb[key].n[`${cx},${cy}`] = 1;
 
-        let nid = 'node_' + (nextNodeId++);
-        tree[nid] = { id: nid, parent: currentNodeId, children: [], x: px, y: py, color: node.moveNumber % 2 === 0 ? 1 : 2, moveNumber: node.moveNumber + 1 };
-        node.children.push(nid); node.lastSelectedChild = nid; currentNodeId = nid; updateUI();
+        let nid = '' + nextNodeId++;
+        tree[nid] = { i: nid, p: currentNodeId, c: [], x: px, y: py, o: node.m % 2 === 0 ? 1 : 2, m: node.m + 1 };
+        node.c.push(nid); node.l = nid; currentNodeId = nid; updateUI();
     });
 
     commentArea.addEventListener('input', (e) => {
         const { key } = getCanonicalInfo(currentNodeId);
-        if (!posDb[key]) posDb[key] = { comment: "", labels: {}, nextMoves: {} };
-        posDb[key].comment = e.target.value;
+        if (!posDb[key]) posDb[key] = { c: "", l: {}, n: {} };
+        posDb[key].c = e.target.value;
     });
     commentArea.addEventListener('keydown', (e) => {
         // コメント欄にフォーカスがあるときだけ有効
@@ -357,39 +357,39 @@
         else { CELL_SIZE = (620-40)/14; MARGIN_L = MARGIN_R = MARGIN_T = MARGIN_B = 20; }
         updateUI();
     }
-    function goBack() { if (tree[currentNodeId].parent) { currentNodeId = tree[currentNodeId].parent; updateUI(); } }
-    function goNext() { let n = tree[currentNodeId], t = n.lastSelectedChild || (n.children.length > 0 ? n.children[0] : null); if (t) { currentNodeId = t; updateUI(); } }
-    function goToPrevBranch() { let c = tree[currentNodeId]; while (c.parent) { c = tree[c.parent]; if (c.children.length > 1 || c.id === 'root') { currentNodeId = c.id; updateUI(); return; } } }
+    function goBack() { if (tree[currentNodeId].p) { currentNodeId = tree[currentNodeId].p; updateUI(); } }
+    function goNext() { let n = tree[currentNodeId], t = n.l || (n.c.length > 0 ? n.c[0] : null); if (t) { currentNodeId = t; updateUI(); } }
+    function goToPrevBranch() { let c = tree[currentNodeId]; while (c.p) { c = tree[c.p]; if (c.c.length > 1 || c.i === 'r') { currentNodeId = c.i; updateUI(); return; } } }
     function goToNextBranch() {
-        let c = tree[currentNodeId], t = c.lastSelectedChild || (c.children.length > 0 ? c.children[0] : null);
-        while (t) { c = tree[t]; if (c.children.length > 1 || c.children.length === 0) { currentNodeId = c.id; updateUI(); return; } t = c.lastSelectedChild || (c.children.length > 0 ? c.children[0] : null); }
+        let c = tree[currentNodeId], t = c.l || (c.c.length > 0 ? c.c[0] : null);
+        while (t) { c = tree[t]; if (c.c.length > 1 || c.c.length === 0) { currentNodeId = c.i; updateUI(); return; } t = c.l || (c.c.length > 0 ? c.c[0] : null); }
     }
-    function undo() { if (undoStack.length === 0) return; const s = JSON.parse(undoStack.pop()); tree = s.tree; posDb = s.posDb; currentNodeId = s.currentNodeId; nextNodeId = s.nextNodeId; updateUI(); }
+    function undo() { if (undoStack.length === 0) return; const s = JSON.parse(undoStack.pop()); tree = s.t; posDb = s.p; currentNodeId = s.c; nextNodeId = s.n; updateUI(); }
     
     function deleteCurrentNode() {
-        if (currentNodeId === 'root') return;
+        if (currentNodeId === 'r') return;
         pushUndo();
         const tid = currentNodeId;
         const nodeToRemove = tree[tid];
-        const pid = nodeToRemove.parent;
+        const pid = nodeToRemove.p;
 
         // 親局面の「次の手」リストから削除
         const { key: pKey, index: pIndex } = getCanonicalInfo(pid);
         const [cx, cy] = inverseTransform(nodeToRemove.x, nodeToRemove.y, pIndex);
-        if (posDb[pKey] && posDb[pKey].nextMoves) {
-            delete posDb[pKey].nextMoves[`${cx},${cy}`];
+        if (posDb[pKey] && posDb[pKey].n) {
+            delete posDb[pKey].n[`${cx},${cy}`];
         }
 
         // 削除対象局面以降のposDbデータを再帰的に削除
         const del = (id) => {
             const { key: dKey } = getCanonicalInfo(id);
             delete posDb[dKey];
-            tree[id].children.forEach(del);
+            tree[id].c.forEach(del);
             delete tree[id];
         };
         del(tid);
 
-        tree[pid].children = tree[pid].children.filter(id => id !== tid);
+        tree[pid].c = tree[pid].c.filter(id => id !== tid);
         currentNodeId = pid;
         updateUI();
     }
@@ -430,7 +430,7 @@
     function loadFromText(text) {
         try {
             const d = JSON.parse(text);
-            tree = d.tree; posDb = d.posDb || {}; currentNodeId = d.currentNodeId; nextNodeId = d.nextNodeId; undoStack = []; updateUI();
+            tree = d.t; posDb = d.p || {}; currentNodeId = d.c; nextNodeId = d.n; undoStack = []; updateUI();
         } catch(err) { alert('読込失敗'); }
     }
 
@@ -447,7 +447,7 @@
     }
 
     async function saveKifu() {
-        const json = JSON.stringify({ tree, posDb, currentNodeId, nextNodeId });
+        const json = JSON.stringify({ t: tree, p: posDb, c: currentNodeId, n: nextNodeId });
 
         try {
             // fileHandleがなければ新規取得
