@@ -72,7 +72,7 @@
         <div class="board-controls">
             <div class="ctrl-left">
                 <button class="load-btn" onclick="openFile()" style="background:#e0f0ff; border-color:#b0d0ff; color:#0055aa;">読込</button>
-                <button onclick="saveKifuWithConfirm()" style="background:#e8f5e9; border-color:#a5d6a7; color:#2e7d32;">S</button>
+                <button onclick="saveKifuWithConfirm()">S</button>
             </div>
             <div class="ctrl-center">
                 <button onclick="goToPrevBranch()">&lt;&lt;</button>
@@ -447,25 +447,29 @@
         setTimeout(() => el.remove(), 1500);
     }
 
+    function downloadJson() {
+        const json = JSON.stringify({ t: tree, p: posDb, c: currentNodeId, n: nextNodeId });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+        a.download = `renju_${Date.now()}.json`; a.click();
+        showToast('保存しました');
+    }
+
     async function saveKifu() {
         const json = JSON.stringify({ t: tree, p: posDb, c: currentNodeId, n: nextNodeId });
 
+        if (!window.showSaveFilePicker) { downloadJson(); return; }
+
         try {
-            // fileHandleがなければ新規取得
             if (!fileHandle) {
                 fileHandle = await window.showSaveFilePicker({
                     suggestedName: `renju_${Date.now()}.json`,
-                    types: [{
-                        description: 'JSONファイル',
-                        accept: { 'application/json': ['.json'] }
-                    }]
+                    types: [{ description: 'JSONファイル', accept: { 'application/json': ['.json'] } }]
                 });
             }
-
             const writable = await fileHandle.createWritable();
             await writable.write(json);
             await writable.close();
-
             showToast('保存しました');
         } catch (e) {
             // キャンセル or エラー → 何もしない
