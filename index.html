@@ -35,7 +35,7 @@
         .board-controls button, .label-leaf-delete, .label-form-btn {
             padding: 12px 14px; border: 1px solid #ccc; background: #f9f9f9;
             border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; touch-action: manipulation;
-            white-space: nowrap;
+            white-space: nowrap; user-select: none; -webkit-user-select: none;
         }
         .board-controls button:hover, .label-leaf-delete:hover, .label-form-btn:hover {
             background: #e9e9e9;
@@ -56,7 +56,7 @@
         .tab-btn {
             appearance: none; border: 0; background: transparent; color: #667085;
             border-radius: 999px; padding: 5px 11px; font-size: 12px; font-weight: 600; letter-spacing: 0.01em;
-            cursor: pointer;
+            cursor: pointer; user-select: none; -webkit-user-select: none;
         }
         .tab-btn:hover { color: #344054; background: rgba(255, 255, 255, 0.55); }
         .tab-btn.active { background: #fff; color: #101828; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08); }
