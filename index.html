@@ -8,7 +8,7 @@
         body {
             font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
             background-color: #f4f4f9; margin: 0; padding: 10px; overscroll-behavior-y: none;
-            display: flex; justify-content: center; touch-action: manipulation; 
+            display: flex; justify-content: center; touch-action: manipulation;
         }
         .container {
             display: flex; gap: 20px; background: #fff; padding: 15px; border-radius: 8px;
@@ -30,23 +30,83 @@
         .ctrl-center { display: flex; gap: 5px; }
         .ctrl-right { display: flex; gap: 5px; justify-content: flex-end; }
         .ctrl-right button { min-width: 4em; }
-        .board-controls button {
+        .board-controls button, .label-leaf-delete, .label-form-btn {
             padding: 12px 14px; border: 1px solid #ccc; background: #f9f9f9;
             border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; touch-action: manipulation;
             white-space: nowrap;
         }
-        .board-controls button:hover { background: #e9e9e9; }
+        .board-controls button:hover, .label-leaf-delete:hover, .label-form-btn:hover {
+            background: #e9e9e9;
+        }
         textarea {
-            width: 100%; flex-grow: 1; min-height: 150px; resize: none; overflow-y: auto; touch-action: pan-y; padding: 10px; font-size: 16px; 
+            width: 100%; flex-grow: 1; min-height: 150px; resize: none; overflow-y: auto; touch-action: pan-y; padding: 10px; font-size: 16px;
             border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; outline: none; background-color: #fff; color: #333;
         }
         .hidden-hint { color: transparent !important; caret-color: transparent !important; }
         .hidden-hint::placeholder { color: transparent !important; }
         .guide { font-size: 13px; color: #666; line-height: 1.5; background: #f9f9fb; padding: 10px; border-radius: 4px; border: 1px solid #eee; }
+        .side-tabs {
+            display: inline-flex; gap: 2px; align-self: flex-start;
+            padding: 2px; border-radius: 999px; background: #f2f4f7; border: 1px solid #e3e7ed;
+        }
+        .tab-btn {
+            appearance: none; border: 0; background: transparent; color: #667085;
+            border-radius: 999px; padding: 5px 11px; font-size: 12px; font-weight: 600; letter-spacing: 0.01em;
+            cursor: pointer;
+        }
+        .tab-btn:hover { color: #344054; background: rgba(255, 255, 255, 0.55); }
+        .tab-btn.active { background: #fff; color: #101828; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08); }
+        .tab-panel { display: none; flex: 1 1 0; min-height: 0; }
+        .tab-panel.active { display: flex; flex-direction: column; }
+        .comment-panel textarea { height: 100%; min-height: 0; }
+        .position-labels-panel { gap: 10px; min-height: 0; }
+        .label-register-panel, .label-list-panel { box-sizing: border-box; }
+        .label-register-panel { padding: 0; display: flex; flex-direction: column; gap: 8px; }
+        .label-list-panel { flex: 1 1 0; min-height: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+        .label-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(72px, 0.55fr) auto; gap: 8px; align-items: center; }
+        .label-field input {
+            width: 100%; box-sizing: border-box; padding: 9px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;
+        }
+        .label-form-actions { display: contents; }
+        .label-form-btn.primary { background: #eef4ff; border-color: #bfd2fb; color: #24488f; padding: 9px 14px; }
+        .label-leaf-delete { background: #fff; }
+        .label-error {
+            display: none; align-items: center; gap: 8px; flex-wrap: wrap;
+            background: #fff2f0; border: 1px solid #f0b8b2; color: #9a3126; border-radius: 6px; padding: 8px 10px; font-size: 13px;
+        }
+        .label-error.active { display: flex; }
+        .label-error button { padding: 7px 10px; font-size: 12px; }
+        .label-tree { flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+        .label-empty { color: #666; font-size: 13px; padding: 8px 4px; }
+        .label-group, .label-subgroup, .label-leaf { background: transparent; }
+        .label-group-header, .label-subgroup-header, .label-leaf-row {
+            display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; padding: 7px 2px;
+        }
+        .label-group-header, .label-subgroup-header {
+            background: transparent; cursor: pointer; border: 0; border-bottom: 1px solid #edf0f4;
+            color: #344054; justify-content: flex-start; text-align: left;
+        }
+        .label-group-header:hover, .label-subgroup-header:hover { color: #101828; }
+        .label-toggle { width: 1.2em; text-align: center; color: #98a2b3; font-size: 11px; }
+        .label-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+        .label-count { color: #98a2b3; font-size: 11px; font-weight: 500; }
+        .label-subtree { display: flex; flex-direction: column; gap: 2px; padding: 2px 0 0 14px; }
+        .label-leaf-row { border-bottom: 1px solid #f2f4f7; cursor: pointer; }
+        .label-leaf-row.current { color: #184a9a; }
+        .label-leaf-row.highlight { box-shadow: inset 2px 0 0 #7eb1ff; }
+        .label-leaf-main { flex: 1 1 auto; display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .label-leaf-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; padding-left: 6px; }
+        .label-leaf-delete {
+            padding: 4px 0; font-size: 12px; background: transparent; border: 0; color: #667085; font-weight: 600;
+        }
+        .label-leaf-delete:hover { background: transparent; color: #101828; }
+        .label-leaf-delete { color: #b42318; }
         @media (max-width: 599px) {
             .ctrl-center button { width: 2.9em; padding-left: 0; padding-right: 0; }
             .ctrl-right { display: grid; grid-template-columns: 1fr 1fr; }
             .ctrl-right button { min-width: 0; padding-left: 0; padding-right: 0; }
+            .label-form-actions { display: block; }
+            .label-grid { grid-template-columns: 1fr; }
         }
         @media (min-width: 600px) and (max-width: 1199px) {
             .ctrl-center button { padding: 12px 22px; }
@@ -62,9 +122,13 @@
             textarea { height: 100%; min-height: 0; margin: 0; width: 100%; line-height: 1.45; }
         }
         @media (min-width: 1200px) {
-            .container { flex-wrap: nowrap; } .left-pane { width: 620px; flex: 0 0 auto; } .right-pane { width: 416px; flex: 0 0 auto; } 
+            .container { flex-wrap: nowrap; }
+            .left-pane { width: 620px; flex: 0 0 auto; }
+            .right-pane { width: 416px; flex: 0 0 auto; }
             textarea { min-height: 300px; line-height: 1.45; }
-            textarea:focus { border-color: #7ab8f5; box-shadow: 0 0 0 3px rgba(100,170,240,0.25); }
+            textarea:focus, .label-field input:focus {
+                border-color: #7ab8f5; box-shadow: 0 0 0 3px rgba(100,170,240,0.25);
+            }
         }
     </style>
 </head>
@@ -97,17 +161,51 @@
             ・<b>Ctrl+S</b> で保存 / <b>Ctrl+O</b> で読込<br>
             ・<b>Ctrl+;</b> でコメント入力切替 / <b>Ctrl+F</b> でコメント表示切替
         </div>
-        <textarea id="commentArea"></textarea>
+        <div class="side-tabs">
+            <button id="commentTabBtn" class="tab-btn active" type="button" onclick="setActiveSideTab('comment')">コメント</button>
+            <button id="positionLabelsTabBtn" class="tab-btn" type="button" onclick="setActiveSideTab('labels')">索引</button>
+        </div>
+        <div id="commentPanel" class="tab-panel comment-panel active">
+            <textarea id="commentArea"></textarea>
+        </div>
+        <div id="positionLabelsPanel" class="tab-panel position-labels-panel">
+            <div class="label-register-panel">
+                <div class="label-grid">
+                    <div class="label-field">
+                        <input id="labelInput1" list="labelK1Options" type="text" autocomplete="off" placeholder="第1階層">
+                        <datalist id="labelK1Options"></datalist>
+                    </div>
+                    <div class="label-field">
+                        <input id="labelInput2" list="labelK2Options" type="text" autocomplete="off" placeholder="第2階層">
+                        <datalist id="labelK2Options"></datalist>
+                    </div>
+                    <div class="label-field">
+                        <input id="labelInput3" type="text" autocomplete="off" placeholder="第3階層">
+                    </div>
+                    <div class="label-form-actions">
+                        <button type="button" class="label-form-btn primary" onclick="registerCurrentPositionLabel()">登録</button>
+                    </div>
+                </div>
+                <div id="positionLabelError" class="label-error">
+                    <span id="positionLabelErrorText"></span>
+                    <button id="positionLabelErrorAction" type="button"></button>
+                </div>
+            </div>
+            <div class="label-list-panel">
+                <div id="positionLabelsTree" class="label-tree"></div>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
     const BOARD_SIZE = 15;
-    let CELL_SIZE = 40, MARGIN_L = 35, MARGIN_R = 25, MARGIN_T = 25, MARGIN_B = 35; 
+    let CELL_SIZE = 40, MARGIN_L = 35, MARGIN_R = 25, MARGIN_T = 25, MARGIN_B = 35;
     if (window.innerWidth <= 599) {
         MARGIN_T += 5;
     }
-    const LOGICAL_W = 620, LOGICAL_H = 620; 
+    const LOGICAL_W = 620, LOGICAL_H = 620;
+    const naturalCollator = new Intl.Collator('ja', { numeric: true, sensitivity: 'base' });
 
     const canvas = document.getElementById('boardCanvas');
     const ctx = canvas.getContext('2d');
@@ -115,10 +213,80 @@
     const bgCtx = bgCanvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
     const commentArea = document.getElementById('commentArea');
+    const commentTabBtn = document.getElementById('commentTabBtn');
+    const positionLabelsTabBtn = document.getElementById('positionLabelsTabBtn');
+    const commentPanel = document.getElementById('commentPanel');
+    const positionLabelsPanel = document.getElementById('positionLabelsPanel');
+    const labelInput1 = document.getElementById('labelInput1');
+    const labelInput2 = document.getElementById('labelInput2');
+    const labelInput3 = document.getElementById('labelInput3');
+    const labelK1Options = document.getElementById('labelK1Options');
+    const labelK2Options = document.getElementById('labelK2Options');
+    const positionLabelError = document.getElementById('positionLabelError');
+    const positionLabelErrorText = document.getElementById('positionLabelErrorText');
+    const positionLabelErrorAction = document.getElementById('positionLabelErrorAction');
+    const positionLabelsTree = document.getElementById('positionLabelsTree');
 
-    let tree = {}, posDb = {}; 
-    let currentNodeId = 'r', nextNodeId = 1; 
-    let showHints = true, showCoords = true;
+    let tree = {}, posDb = {}, positionLabels = createEmptyPositionLabels();
+    let currentNodeId = 'r', nextNodeId = 1;
+    let showHints = true, showCoords = true, activeSideTab = 'comment';
+    let highlightedLabelPosKey = null;
+    let labelErrorActionHandler = null;
+    const collapsedLabelGroups = new Set();
+    const collapsedLabelSubgroups = new Set();
+
+    function createEmptyPositionLabels() {
+        return { byPosKey: {}, byName: {} };
+    }
+
+    function buildLabelName(k1, k2, k3) {
+        return `${k1}/${k2}/${k3}`;
+    }
+
+    function subgroupKey(k1, k2) {
+        return JSON.stringify([k1, k2]);
+    }
+
+    function normalizePositionLabels(pl) {
+        const normalized = createEmptyPositionLabels();
+        if (!pl || typeof pl !== 'object') return normalized;
+
+        const byPosKey = pl.byPosKey && typeof pl.byPosKey === 'object' ? pl.byPosKey : {};
+        for (const [posKey, entry] of Object.entries(byPosKey)) {
+            if (!entry || typeof entry !== 'object') continue;
+            const k1 = typeof entry.k1 === 'string' ? entry.k1.trim() : '';
+            const k2 = typeof entry.k2 === 'string' ? entry.k2.trim() : '';
+            const k3 = typeof entry.k3 === 'string' ? entry.k3.trim() : '';
+            const rep = typeof entry.rep === 'string' ? entry.rep : '';
+            if (!k1 || !k2 || !k3 || !rep) continue;
+            const nameKey = buildLabelName(k1, k2, k3);
+            if (normalized.byName[nameKey]) continue;
+            normalized.byPosKey[posKey] = { k1, k2, k3, rep };
+            normalized.byName[nameKey] = posKey;
+        }
+        return normalized;
+    }
+
+    function clearPositionLabelsState() {
+        positionLabels = createEmptyPositionLabels();
+        highlightedLabelPosKey = null;
+        collapsedLabelGroups.clear();
+        collapsedLabelSubgroups.clear();
+        clearPositionLabelForm();
+        clearPositionLabelError();
+    }
+
+    function getLabelValues() {
+        return {
+            k1: labelInput1.value.trim(),
+            k2: labelInput2.value.trim(),
+            k3: labelInput3.value.trim(),
+        };
+    }
+
+    function getCurrentPosKey() {
+        return getCanonicalInfo(currentNodeId).key;
+    }
 
     function setupCanvas() {
         bgCanvas.width = LOGICAL_W * dpr; bgCanvas.height = LOGICAL_H * dpr;
@@ -131,30 +299,43 @@
 
     function initGame() {
         tree = { 'r': { i: 'r', p: null, c: [], x: null, y: null, o: 0, m: 0 } };
-        posDb = {}; currentNodeId = 'r'; nextNodeId = 1;
+        posDb = {};
+        currentNodeId = 'r';
+        nextNodeId = 1;
+        clearPositionLabelsState();
         clearCanonicalCache();
-        setupCanvas(); updateUI();
+        setupCanvas();
+        updateUI();
     }
 
-    // カノニカル座標(cx,cy)を物理座標(px,py)へ変換
     function transform(cx, cy, i) {
         const last = BOARD_SIZE - 1;
         switch(i) {
-            case 0: return [cx, cy]; case 1: return [cy, last-cx]; case 2: return [last-cx, last-cy]; case 3: return [last-cy, cx];
-            case 4: return [last-cx, cy]; case 5: return [cx, last-cy]; case 6: return [cy, cx]; case 7: return [last-cy, last-cx];
+            case 0: return [cx, cy];
+            case 1: return [cy, last-cx];
+            case 2: return [last-cx, last-cy];
+            case 3: return [last-cy, cx];
+            case 4: return [last-cx, cy];
+            case 5: return [cx, last-cy];
+            case 6: return [cy, cx];
+            case 7: return [last-cy, last-cx];
         }
     }
 
-    // 物理座標(px,py)をカノニカル座標(cx,cy)へ戻す逆変換
     function inverseTransform(px, py, i) {
         const last = BOARD_SIZE - 1;
         switch(i) {
-            case 0: return [px, py]; case 1: return [last-py, px]; case 2: return [last-px, last-py]; case 3: return [py, last-px];
-            case 4: return [last-px, py]; case 5: return [px, last-py]; case 6: return [py, px]; case 7: return [last-py, last-px];
+            case 0: return [px, py];
+            case 1: return [last-py, px];
+            case 2: return [last-px, last-py];
+            case 3: return [py, last-px];
+            case 4: return [last-px, py];
+            case 5: return [px, last-py];
+            case 6: return [py, px];
+            case 7: return [last-py, last-px];
         }
     }
 
-    // 225トリット(3値)を5トリット/バイトで45バイトに詰めてbase64url化 → 60文字
     function encodeBoard(s, color) {
         const bytes = new Uint8Array(45);
         for (let i = 0; i < 45; i++) {
@@ -179,22 +360,29 @@
 
         let grid = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0));
         let curr = tree[nodeId];
-        while (curr && curr.i !== 'r') { grid[curr.x][curr.y] = curr.o; curr = tree[curr.p]; }
+        while (curr && curr.i !== 'r') {
+            grid[curr.x][curr.y] = curr.o;
+            curr = tree[curr.p];
+        }
         const nextColor = tree[nodeId].m % 2 === 0 ? 1 : 2;
         let bestS = null, best = null;
         for (let i = 0; i < 8; i++) {
-            let s = "";
+            let s = '';
             for (let y = 0; y < BOARD_SIZE; y++) {
                 for (let x = 0; x < BOARD_SIZE; x++) {
-                    const [tx, ty] = transform(x, y, i); s += grid[tx][ty];
+                    const [tx, ty] = transform(x, y, i);
+                    s += grid[tx][ty];
                 }
             }
-            if (!bestS || s < bestS) { bestS = s; best = { key: encodeBoard(s, nextColor), index: i }; }
+            if (!bestS || s < bestS) {
+                bestS = s;
+                best = { key: encodeBoard(s, nextColor), index: i };
+            }
         }
         canonicalCache[nodeId] = best;
         cacheSize++;
         if (cacheSize > MAX_CACHE) {
-            for (let k in canonicalCache) delete canonicalCache[k];
+            for (let key in canonicalCache) delete canonicalCache[key];
             cacheSize = 0;
         }
         return best;
@@ -203,14 +391,305 @@
     function updateUI() {
         ctx.clearRect(0, 0, LOGICAL_W, LOGICAL_H);
         const { key, index } = getCanonicalInfo(currentNodeId);
-        const data = posDb[key] || { c: "", l: {}, n: {} };
-        commentArea.value = data.c || "";
+        const data = posDb[key] || { c: '', l: {}, n: {} };
+        commentArea.value = data.c || '';
         drawStonesAndHighlights(data, index);
+        updatePositionLabelPanel(key);
+    }
+
+    function updatePositionLabelPanel(currentPosKey) {
+        updatePositionLabelDatalists();
+        renderPositionLabelsList(currentPosKey);
+    }
+
+    function updatePositionLabelDatalists() {
+        const years = new Set();
+        const events = new Set();
+        for (const entry of Object.values(positionLabels.byPosKey)) {
+            years.add(entry.k1);
+            events.add(entry.k2);
+        }
+        labelK1Options.innerHTML = '';
+        labelK2Options.innerHTML = '';
+        Array.from(years).sort((a, b) => naturalCollator.compare(b, a)).forEach((value) => {
+            const option = document.createElement('option');
+            option.value = value;
+            labelK1Options.appendChild(option);
+        });
+        Array.from(events).sort((a, b) => naturalCollator.compare(a, b)).forEach((value) => {
+            const option = document.createElement('option');
+            option.value = value;
+            labelK2Options.appendChild(option);
+        });
+    }
+
+    function setActiveSideTab(tab) {
+        activeSideTab = tab;
+        const showComment = tab === 'comment';
+        commentTabBtn.classList.toggle('active', showComment);
+        positionLabelsTabBtn.classList.toggle('active', !showComment);
+        commentPanel.classList.toggle('active', showComment);
+        positionLabelsPanel.classList.toggle('active', !showComment);
+    }
+
+    function setPositionLabelError(message, actionLabel = '', actionHandler = null) {
+        positionLabelError.classList.toggle('active', Boolean(message));
+        positionLabelErrorText.textContent = message || '';
+        positionLabelErrorAction.style.display = actionHandler ? '' : 'none';
+        positionLabelErrorAction.textContent = actionLabel;
+        labelErrorActionHandler = actionHandler;
+    }
+
+    function clearPositionLabelError() {
+        setPositionLabelError('');
+    }
+
+    function clearPositionLabelForm() {
+        labelInput1.value = '';
+        labelInput2.value = '';
+        labelInput3.value = '';
+        clearPositionLabelError();
+    }
+
+    function expandLabelPath(posKey) {
+        const entry = positionLabels.byPosKey[posKey];
+        if (!entry) return;
+        collapsedLabelGroups.delete(entry.k1);
+        collapsedLabelSubgroups.delete(subgroupKey(entry.k1, entry.k2));
+    }
+
+    function revealPositionLabel(posKey) {
+        if (!positionLabels.byPosKey[posKey]) return;
+        highlightedLabelPosKey = posKey;
+        expandLabelPath(posKey);
+        setActiveSideTab('labels');
+        renderPositionLabelsList(getCurrentPosKey());
+        requestAnimationFrame(() => {
+            const el = positionLabelsTree.querySelector(`[data-pos-key="${CSS.escape(posKey)}"]`);
+            if (el) el.scrollIntoView({ block: 'nearest' });
+        });
+    }
+
+    function registerCurrentPositionLabel() {
+        clearPositionLabelError();
+        const { k1, k2, k3 } = getLabelValues();
+        if (!k1) {
+            showToast('第1階層が未入力です');
+            return;
+        }
+        if (!k2) {
+            showToast('第2階層が未入力です');
+            return;
+        }
+        if (!k3) {
+            showToast('第3階層が未入力です');
+            return;
+        }
+
+        const posKey = getCurrentPosKey();
+        if (positionLabels.byPosKey[posKey]) {
+            const existing = positionLabels.byPosKey[posKey];
+            const name = buildLabelName(existing.k1, existing.k2, existing.k3);
+            clearPositionLabelError();
+            showToast(`現在局面が既に登録済みです：${name}`);
+            return;
+        }
+
+        const nameKey = buildLabelName(k1, k2, k3);
+        if (positionLabels.byName[nameKey]) {
+            clearPositionLabelError();
+            showToast(`局面ラベルが既に存在します：${nameKey}`);
+            return;
+        }
+
+        positionLabels.byPosKey[posKey] = { k1, k2, k3, rep: currentNodeId };
+        positionLabels.byName[nameKey] = posKey;
+        highlightedLabelPosKey = posKey;
+        expandLabelPath(posKey);
+        clearPositionLabelError();
+        updateUI();
+        showToast('ラベルを登録しました');
+    }
+
+    function buildFilteredPositionLabelTree() {
+        const roots = {};
+        for (const [posKey, entry] of Object.entries(positionLabels.byPosKey)) {
+            if (!roots[entry.k1]) roots[entry.k1] = { count: 0, children: {} };
+            if (!roots[entry.k1].children[entry.k2]) roots[entry.k1].children[entry.k2] = { count: 0, leaves: [] };
+            roots[entry.k1].count += 1;
+            roots[entry.k1].children[entry.k2].count += 1;
+            roots[entry.k1].children[entry.k2].leaves.push({ posKey, entry });
+        }
+        return roots;
+    }
+
+    function renderPositionLabelsList(currentPosKey) {
+        positionLabelsTree.innerHTML = '';
+        const treeData = buildFilteredPositionLabelTree();
+        const yearKeys = Object.keys(treeData).sort((a, b) => naturalCollator.compare(b, a));
+        if (!yearKeys.length) {
+            const empty = document.createElement('div');
+            empty.className = 'label-empty';
+            empty.textContent = Object.keys(positionLabels.byPosKey).length === 0 ? '局面ラベルはまだありません。' : '検索条件に一致する局面ラベルがありません。';
+            positionLabelsTree.appendChild(empty);
+            return;
+        }
+
+        const forceExpand = false;
+        for (const year of yearKeys) {
+            const group = treeData[year];
+            const yearExpanded = forceExpand || !collapsedLabelGroups.has(year);
+            const groupEl = document.createElement('div');
+            groupEl.className = 'label-group';
+
+            const header = document.createElement('button');
+            header.type = 'button';
+            header.className = 'label-group-header';
+            header.addEventListener('click', () => {
+                if (collapsedLabelGroups.has(year)) collapsedLabelGroups.delete(year); else collapsedLabelGroups.add(year);
+                renderPositionLabelsList(getCurrentPosKey());
+            });
+
+            const toggle = document.createElement('span');
+            toggle.className = 'label-toggle';
+            toggle.textContent = yearExpanded ? '▼' : '▶';
+            const title = document.createElement('span');
+            title.className = 'label-title';
+            title.textContent = year;
+            const count = document.createElement('span');
+            count.className = 'label-count';
+            count.textContent = `${group.count}件`;
+            header.append(toggle, title, count);
+            groupEl.appendChild(header);
+
+            if (yearExpanded) {
+                const subtree = document.createElement('div');
+                subtree.className = 'label-subtree';
+                const eventKeys = Object.keys(group.children).sort((a, b) => naturalCollator.compare(a, b));
+                for (const eventName of eventKeys) {
+                    const subgroupData = group.children[eventName];
+                    const sgKey = subgroupKey(year, eventName);
+                    const subgroupExpanded = forceExpand || !collapsedLabelSubgroups.has(sgKey);
+                    const subgroupEl = document.createElement('div');
+                    subgroupEl.className = 'label-subgroup';
+
+                    const subHeader = document.createElement('button');
+                    subHeader.type = 'button';
+                    subHeader.className = 'label-subgroup-header';
+                    subHeader.addEventListener('click', () => {
+                        if (collapsedLabelSubgroups.has(sgKey)) collapsedLabelSubgroups.delete(sgKey); else collapsedLabelSubgroups.add(sgKey);
+                        renderPositionLabelsList(getCurrentPosKey());
+                    });
+
+                    const subToggle = document.createElement('span');
+                    subToggle.className = 'label-toggle';
+                    subToggle.textContent = subgroupExpanded ? '▼' : '▶';
+                    const subTitle = document.createElement('span');
+                    subTitle.className = 'label-title';
+                    subTitle.textContent = eventName;
+                    const subCount = document.createElement('span');
+                    subCount.className = 'label-count';
+                    subCount.textContent = `${subgroupData.count}件`;
+                    subHeader.append(subToggle, subTitle, subCount);
+                    subgroupEl.appendChild(subHeader);
+
+                    if (subgroupExpanded) {
+                        const leafTree = document.createElement('div');
+                        leafTree.className = 'label-subtree';
+                        subgroupData.leaves.sort((a, b) => naturalCollator.compare(a.entry.k3, b.entry.k3));
+                        for (const { posKey, entry } of subgroupData.leaves) {
+                            const leaf = document.createElement('div');
+                            leaf.className = 'label-leaf';
+                            const row = document.createElement('div');
+                            row.className = 'label-leaf-row';
+                            row.dataset.posKey = posKey;
+                            row.addEventListener('click', () => jumpToPositionLabel(posKey));
+                            if (posKey === currentPosKey) row.classList.add('current');
+                            if (posKey === highlightedLabelPosKey) row.classList.add('highlight');
+
+                            const main = document.createElement('div');
+                            main.className = 'label-leaf-main';
+
+                            const name = document.createElement('span');
+                            name.className = 'label-leaf-name';
+                            name.textContent = entry.k3;
+                            main.appendChild(name);
+
+                            const delBtn = document.createElement('button');
+                            delBtn.type = 'button';
+                            delBtn.className = 'label-leaf-delete';
+                            delBtn.textContent = '削除';
+                            delBtn.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                confirmDeletePositionLabel(posKey);
+                            });
+
+                            row.append(main, delBtn);
+                            leaf.appendChild(row);
+                            leafTree.appendChild(leaf);
+                        }
+                        subgroupEl.appendChild(leafTree);
+                    }
+                    subtree.appendChild(subgroupEl);
+                }
+                groupEl.appendChild(subtree);
+            }
+            positionLabelsTree.appendChild(groupEl);
+        }
+    }
+
+    function confirmDeletePositionLabel(posKey) {
+        const entry = positionLabels.byPosKey[posKey];
+        if (!entry) return;
+        const nameKey = buildLabelName(entry.k1, entry.k2, entry.k3);
+        if (!confirm(`ラベル「${nameKey}」を削除します。よろしいですか？`)) return;
+        deletePositionLabel(posKey);
+        updateUI();
+        showToast('ラベルを削除しました');
+    }
+
+    function deletePositionLabel(posKey) {
+        const entry = positionLabels.byPosKey[posKey];
+        if (!entry) return false;
+        const nameKey = buildLabelName(entry.k1, entry.k2, entry.k3);
+        delete positionLabels.byPosKey[posKey];
+        delete positionLabels.byName[nameKey];
+        if (highlightedLabelPosKey === posKey) highlightedLabelPosKey = null;
+        clearPositionLabelError();
+        return true;
+    }
+
+    function deletePositionLabelsByPosKeys(posKeys) {
+        let count = 0;
+        for (const posKey of posKeys) {
+            if (deletePositionLabel(posKey)) count++;
+        }
+        return count;
+    }
+
+    function findNodeIdByPosKey(targetPosKey) {
+        for (const nodeId of Object.keys(tree)) {
+            if (getCanonicalInfo(nodeId).key === targetPosKey) return nodeId;
+        }
+        return null;
+    }
+
+    function jumpToPositionLabel(posKey) {
+        const entry = positionLabels.byPosKey[posKey];
+        if (!entry) return;
+        let targetNodeId = tree[entry.rep] ? entry.rep : findNodeIdByPosKey(posKey);
+        if (!targetNodeId) {
+            alert('代表手順が存在しません');
+            return;
+        }
+        currentNodeId = targetNodeId;
+        highlightedLabelPosKey = posKey;
+        updateUI();
     }
 
     function drawBoard() {
         bgCtx.clearRect(0, 0, LOGICAL_W, LOGICAL_H);
-        bgCtx.beginPath(); bgCtx.strokeStyle = '#000'; bgCtx.lineWidth = 1; 
+        bgCtx.beginPath(); bgCtx.strokeStyle = '#000'; bgCtx.lineWidth = 1;
         for (let i = 0; i < BOARD_SIZE; i++) {
             bgCtx.moveTo(MARGIN_L + i * CELL_SIZE, MARGIN_T); bgCtx.lineTo(MARGIN_L + i * CELL_SIZE, MARGIN_T + (BOARD_SIZE-1)*CELL_SIZE);
             bgCtx.moveTo(MARGIN_L, MARGIN_T + i * CELL_SIZE); bgCtx.lineTo(MARGIN_L + (BOARD_SIZE-1)*CELL_SIZE, MARGIN_T + i * CELL_SIZE);
@@ -247,7 +726,7 @@
                     let [cx, cy] = key.split(',').map(Number);
                     let [px, py] = transform(cx, cy, bestI);
                     if (data.l && data.l[`${cx},${cy}`]) continue;
-                    ctx.beginPath(); ctx.fillStyle = 'rgba(128, 128, 128, 0.8)'; 
+                    ctx.beginPath(); ctx.fillStyle = 'rgba(128, 128, 128, 0.8)';
                     ctx.arc(MARGIN_L + px * CELL_SIZE, MARGIN_T + py * CELL_SIZE, 5, 0, Math.PI * 2); ctx.fill();
                 }
             }
@@ -272,6 +751,7 @@
         commentArea.readOnly = isTouchMain() || !showHints;
         commentArea.placeholder = isTouchMain() ? '' : '...';
     }
+
     updateCommentEditable();
     window.matchMedia('(pointer: coarse)').addEventListener('change', updateCommentEditable);
 
@@ -283,27 +763,36 @@
         if (px < 0 || px >= BOARD_SIZE || py < 0 || py >= BOARD_SIZE) return;
 
         const { key, index } = getCanonicalInfo(currentNodeId);
-        // 物理(px,py)から基準(cx,cy)へ変換して保存
         const [cx, cy] = inverseTransform(px, py, index);
 
         if (e.ctrlKey) {
-            if (!posDb[key]) posDb[key] = { c: "", l: {}, n: {} };
+            if (!posDb[key]) posDb[key] = { c: '', l: {}, n: {} };
             if (!posDb[key].l) posDb[key].l = {};
-            let currentText = posDb[key].l[`${cx},${cy}`] || "";
-            let newText = prompt("交点テキストを入力:", currentText);
+            let currentText = posDb[key].l[`${cx},${cy}`] || '';
+            let newText = prompt('交点テキストを入力:', currentText);
             if (newText !== null) {
-                if (newText === "") delete posDb[key].l[`${cx},${cy}`]; else posDb[key].l[`${cx},${cy}`] = newText;
+                if (newText === '') delete posDb[key].l[`${cx},${cy}`]; else posDb[key].l[`${cx},${cy}`] = newText;
                 updateUI();
             }
             return;
         }
 
         let node = tree[currentNodeId];
-        for (let cid of node.c) { if (tree[cid].x === px && tree[cid].y === py) { if (!posDb[key]) posDb[key] = { c: "", l: {}, n: {} }; if (!posDb[key].n) posDb[key].n = {}; posDb[key].n[`${cx},${cy}`] = 1; node.l = cid; currentNodeId = cid; updateUI(); return; } }
+        for (let cid of node.c) {
+            if (tree[cid].x === px && tree[cid].y === py) {
+                if (!posDb[key]) posDb[key] = { c: '', l: {}, n: {} };
+                if (!posDb[key].n) posDb[key].n = {};
+                posDb[key].n[`${cx},${cy}`] = 1;
+                node.l = cid;
+                currentNodeId = cid;
+                updateUI();
+                return;
+            }
+        }
         let temp = currentNodeId;
         while (temp !== 'r') { if (tree[temp].x === px && tree[temp].y === py) return; temp = tree[temp].p; }
-        
-        if (!posDb[key]) posDb[key] = { c: "", l: {}, n: {} };
+
+        if (!posDb[key]) posDb[key] = { c: '', l: {}, n: {} };
         if (!posDb[key].n) posDb[key].n = {};
         posDb[key].n[`${cx},${cy}`] = 1;
 
@@ -314,11 +803,11 @@
 
     commentArea.addEventListener('input', (e) => {
         const { key } = getCanonicalInfo(currentNodeId);
-        if (!posDb[key]) posDb[key] = { c: "", l: {}, n: {} };
+        if (!posDb[key]) posDb[key] = { c: '', l: {}, n: {} };
         posDb[key].c = e.target.value;
     });
+
     commentArea.addEventListener('keydown', (e) => {
-        // コメント欄にフォーカスがあるときだけ有効
         if (document.activeElement !== commentArea) return;
         if (!e.ctrlKey) return;
 
@@ -326,20 +815,15 @@
         const end = commentArea.selectionEnd;
         const value = commentArea.value;
 
-        // Ctrl+J → 改行
         if (e.key === 'j') {
             e.preventDefault();
             insertText('\n');
-        }
-
-        // Ctrl+H → 1文字削除（Backspace）
-        else if (e.key === 'h') {
+        } else if (e.key === 'h') {
             e.preventDefault();
             if (start === end && start > 0) {
                 commentArea.value = value.slice(0, start - 1) + value.slice(end);
                 setCursor(start - 1);
             } else {
-                // 選択範囲削除
                 commentArea.value = value.slice(0, start) + value.slice(end);
                 setCursor(start);
             }
@@ -356,74 +840,93 @@
         }
     });
 
+    positionLabelErrorAction.addEventListener('click', () => {
+        if (labelErrorActionHandler) labelErrorActionHandler();
+    });
     function toggleHints() {
         showHints = !showHints;
-        document.getElementById('toggleHintsBtn').style.background =
-            showHints ? "#f9f9f9" : "#ddd";
+        document.getElementById('toggleHintsBtn').style.background = showHints ? '#f9f9f9' : '#ddd';
         commentArea.classList.toggle('hidden-hint', !showHints);
         updateUI();
         updateCommentEditable();
     }
+
     function toggleCoords() {
-        showCoords = !showCoords; document.getElementById('toggleCoordsBtn').style.background = showCoords ? "#f9f9f9" : "#ddd";
-        if (showCoords) { CELL_SIZE = 40; MARGIN_L = 35; MARGIN_R = 25; MARGIN_T = 25; MARGIN_B = 35; }
-        else { CELL_SIZE = (620-40)/14; MARGIN_L = MARGIN_R = MARGIN_T = MARGIN_B = 20; }
+        showCoords = !showCoords;
+        document.getElementById('toggleCoordsBtn').style.background = showCoords ? '#f9f9f9' : '#ddd';
+        if (showCoords) {
+            CELL_SIZE = 40; MARGIN_L = 35; MARGIN_R = 25; MARGIN_T = 25; MARGIN_B = 35;
+        } else {
+            CELL_SIZE = (620-40)/14; MARGIN_L = MARGIN_R = MARGIN_T = MARGIN_B = 20;
+        }
         drawBoard();
         updateUI();
     }
+
     function goBack() { if (tree[currentNodeId].p) { currentNodeId = tree[currentNodeId].p; updateUI(); } }
-    function goNext() { let n = tree[currentNodeId], t = n.l || (n.c.length > 0 ? n.c[0] : null); if (t) { currentNodeId = t; updateUI(); } }
-    function goToPrevBranch() { let c = tree[currentNodeId]; while (c.p) { c = tree[c.p]; if (c.c.length > 1 || c.i === 'r') { currentNodeId = c.i; updateUI(); return; } } }
+    function goNext() { let node = tree[currentNodeId], target = node.l || (node.c.length > 0 ? node.c[0] : null); if (target) { currentNodeId = target; updateUI(); } }
+    function goToPrevBranch() { let curr = tree[currentNodeId]; while (curr.p) { curr = tree[curr.p]; if (curr.c.length > 1 || curr.i === 'r') { currentNodeId = curr.i; updateUI(); return; } } }
     function goToNextBranch() {
-        let c = tree[currentNodeId], t = c.l || (c.c.length > 0 ? c.c[0] : null);
-        while (t) { c = tree[t]; if (c.c.length > 1 || c.c.length === 0) { currentNodeId = c.i; updateUI(); return; } t = c.l || (c.c.length > 0 ? c.c[0] : null); }
+        let curr = tree[currentNodeId], target = curr.l || (curr.c.length > 0 ? curr.c[0] : null);
+        while (target) { curr = tree[target]; if (curr.c.length > 1 || curr.c.length === 0) { currentNodeId = curr.i; updateUI(); return; } target = curr.l || (curr.c.length > 0 ? curr.c[0] : null); }
     }
+
     function deleteCurrentNode() {
         if (currentNodeId === 'r') return;
-        if (!confirm('現在の手以降の変化を削除します。よろしいですか？')) return;
+        if (!confirm('現在の手以降の変化を削除します。関連する局面ラベルも削除されます。よろしいですか？')) return;
         const tid = currentNodeId;
         const nodeToRemove = tree[tid];
         const pid = nodeToRemove.p;
 
-        // 親局面の「次の手」リストから削除
         const { key: pKey, index: pIndex } = getCanonicalInfo(pid);
         const [cx, cy] = inverseTransform(nodeToRemove.x, nodeToRemove.y, pIndex);
         if (posDb[pKey] && posDb[pKey].n) {
             delete posDb[pKey].n[`${cx},${cy}`];
         }
 
-        // 削除対象局面以降のposDbデータを再帰的に削除
+        const deletedPosKeys = new Set();
         const del = (id) => {
             const { key: dKey } = getCanonicalInfo(id);
+            deletedPosKeys.add(dKey);
             delete posDb[dKey];
             tree[id].c.forEach(del);
             delete tree[id];
         };
         del(tid);
 
-        tree[pid].c = tree[pid].c.filter(id => id !== tid);
+        const deletedLabelCount = deletePositionLabelsByPosKeys(deletedPosKeys);
+        tree[pid].c = tree[pid].c.filter((id) => id !== tid);
         currentNodeId = pid;
         updateUI();
+        if (deletedLabelCount > 0) showToast(`局面ラベルを ${deletedLabelCount} 件削除しました`);
     }
 
     document.addEventListener('keydown', (e) => {
-        if (document.activeElement === commentArea) { if (e.ctrlKey && e.key === ';') { e.preventDefault(); commentArea.blur(); } return; }
-        if (e.ctrlKey || e.metaKey) {
-            const k = e.key.toLowerCase();
-            if (e.key === ';') { e.preventDefault(); commentArea.focus(); }
-            else if (k === 's') { e.preventDefault(); saveKifu(); }
-            else if (k === 'o') { e.preventDefault(); openFile(); } else if (k === 'f') { e.preventDefault(); toggleHints(); } return;
+        if (document.activeElement === commentArea) {
+            if (e.ctrlKey && e.key === ';') { e.preventDefault(); commentArea.blur(); }
+            return;
         }
-        switch(e.key) {
-            case 'h': e.preventDefault(); goToPrevBranch(); break; 
+        if (e.ctrlKey || e.metaKey) {
+            const key = e.key.toLowerCase();
+            if (e.key === ';') { e.preventDefault(); commentArea.focus(); }
+            else if (key === 's') { e.preventDefault(); saveKifu(); }
+            else if (key === 'o') { e.preventDefault(); openFile(); }
+            else if (key === 'f') { e.preventDefault(); toggleHints(); }
+            return;
+        }
+        switch (e.key) {
+            case 'h': e.preventDefault(); goToPrevBranch(); break;
             case 'j': e.preventDefault(); goBack(); break;
-            case 'k': e.preventDefault(); goNext(); break; 
+            case 'k': e.preventDefault(); goNext(); break;
             case 'l': e.preventDefault(); goToNextBranch(); break;
-            case 'ArrowLeft': goBack(); break; case 'ArrowRight': goNext(); break;
-            case 'ArrowUp': goToPrevBranch(); break; case 'ArrowDown': goToNextBranch(); break;
+            case 'ArrowLeft': goBack(); break;
+            case 'ArrowRight': goNext(); break;
+            case 'ArrowUp': goToPrevBranch(); break;
+            case 'ArrowDown': goToNextBranch(); break;
             case 'Delete': deleteCurrentNode(); break;
         }
     });
+
     let fileHandle = null;
 
     async function openFile() {
@@ -433,7 +936,9 @@
                 fileHandle = handle;
                 const file = await handle.getFile();
                 loadFromText(await file.text());
-            } catch(e) { if (e.name !== 'AbortError') alert('読込失敗'); }
+            } catch (e) {
+                if (e.name !== 'AbortError') alert('読込失敗');
+            }
         } else {
             document.getElementById('fileInput').click();
         }
@@ -441,9 +946,19 @@
 
     function loadFromText(text) {
         try {
-            const d = JSON.parse(text);
-            tree = d.t; posDb = d.p || {}; currentNodeId = d.c; nextNodeId = d.n; clearCanonicalCache(); updateUI();
-        } catch(err) { alert('読込失敗'); }
+            const data = JSON.parse(text);
+            tree = data.t;
+            posDb = data.p || {};
+            currentNodeId = data.c;
+            nextNodeId = data.n;
+            positionLabels = normalizePositionLabels(data.pl);
+            highlightedLabelPosKey = null;
+            clearPositionLabelError();
+            clearCanonicalCache();
+            updateUI();
+        } catch (err) {
+            alert('読込失敗');
+        }
     }
 
     function showToast(msg) {
@@ -458,17 +973,21 @@
         setTimeout(() => el.remove(), 1500);
     }
 
+    function buildSaveData() {
+        return { t: tree, p: posDb, c: currentNodeId, n: nextNodeId, pl: positionLabels };
+    }
+
     function downloadJson() {
-        const json = JSON.stringify({ t: tree, p: posDb, c: currentNodeId, n: nextNodeId });
+        const json = JSON.stringify(buildSaveData());
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
-        a.download = `renju_${Date.now()}.json`; a.click();
+        a.download = `renju_${Date.now()}.json`;
+        a.click();
         showToast('保存しました');
     }
 
     async function saveKifu() {
-        const json = JSON.stringify({ t: tree, p: posDb, c: currentNodeId, n: nextNodeId });
-
+        const json = JSON.stringify(buildSaveData());
         if (!window.showSaveFilePicker) { downloadJson(); return; }
 
         try {
@@ -493,45 +1012,45 @@
     }
 
     document.getElementById('fileInput').addEventListener('change', (e) => {
-        const file = e.target.files[0]; if (!file) return;
+        const file = e.target.files[0];
+        if (!file) return;
         fileHandle = null;
-        const reader = new FileReader(); reader.onload = (ev) => loadFromText(ev.target.result);
-        reader.readAsText(file); e.target.value = '';
+        const reader = new FileReader();
+        reader.onload = (ev) => loadFromText(ev.target.result);
+        reader.readAsText(file);
+        e.target.value = '';
     });
-    canvas.addEventListener('contextmenu', e => { e.preventDefault(); goBack(); });
+
+    canvas.addEventListener('contextmenu', (e) => { e.preventDefault(); goBack(); });
     if (isTouchMain()) document.addEventListener('touchmove', (e) => { if (!commentArea.contains(e.target)) e.preventDefault(); }, { passive: false });
 
-    // --- ドラッグ＆ドロップ読み込み ---
     document.addEventListener('dragover', (e) => {
-        e.preventDefault(); // これがないと drop できない
+        e.preventDefault();
     });
 
     document.addEventListener('drop', (e) => {
         e.preventDefault();
-
         const file = e.dataTransfer.files[0];
         if (!file) return;
-
         if (!file.name.endsWith('.json')) {
             alert('JSONファイルをドロップしてください');
             return;
         }
-
         const reader = new FileReader();
-        reader.onload = (ev) => {
-            loadFromText(ev.target.result);
-        };
+        reader.onload = (ev) => loadFromText(ev.target.result);
         reader.readAsText(file);
-
-        fileHandle = null; // 既存のファイルハンドルは無効化
+        fileHandle = null;
     });
+
     window.addEventListener('beforeunload', (e) => {
         e.preventDefault();
         e.returnValue = '';
     });
+
     commentArea.addEventListener('focus', (e) => {
         if (isTouchMain()) e.target.blur();
     });
+
     initGame();
 </script>
 </body>
