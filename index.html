@@ -247,7 +247,7 @@
                     let [cx, cy] = key.split(',').map(Number);
                     let [px, py] = transform(cx, cy, bestI);
                     if (data.l && data.l[`${cx},${cy}`]) continue;
-                    ctx.beginPath(); ctx.fillStyle = 'rgba(128, 128, 128, 0.6)'; 
+                    ctx.beginPath(); ctx.fillStyle = 'rgba(128, 128, 128, 0.8)'; 
                     ctx.arc(MARGIN_L + px * CELL_SIZE, MARGIN_T + py * CELL_SIZE, 5, 0, Math.PI * 2); ctx.fill();
                 }
             }
@@ -256,8 +256,8 @@
                     let [cx, cy] = key.split(',').map(Number);
                     let [px, py] = transform(cx, cy, bestI);
                     let sx = MARGIN_L + px * CELL_SIZE, sy = MARGIN_T + py * CELL_SIZE;
-                    ctx.font = `bold ${Math.floor(CELL_SIZE*0.43)}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)'; ctx.lineWidth = 2.5; ctx.strokeText(data.l[key], sx, sy);
+                    ctx.font = `bold ${Math.floor(CELL_SIZE*0.48)}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)'; ctx.lineWidth = 3.5; ctx.strokeText(data.l[key], sx, sy);
                     ctx.fillStyle = '#555'; ctx.fillText(data.l[key], sx, sy);
                 }
             }
