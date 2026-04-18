@@ -15,6 +15,7 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.1); flex-wrap: wrap; max-width: 100%; box-sizing: border-box;
         }
         .left-pane, .right-pane { flex: 1 1 100%; max-width: 650px; display: flex; flex-direction: column; gap: 10px; margin: 0 auto; }
+        .right-pane { position: relative; min-height: 0; }
         .board-container { position: relative; width: 100%; display: flex; justify-content: center; }
         .canvas-stack { position: relative; display: inline-block; }
         #bgCanvas {
@@ -23,8 +24,9 @@
         }
         #boardCanvas {
             position: absolute; inset: 0; width: 100%; height: 100%;
-            cursor: pointer; touch-action: none; border-radius: 4px;
+            cursor: pointer; touch-action: none; border-radius: 4px; outline: none;
         }
+        #boardCanvas:focus, #boardCanvas:focus-visible { outline: none; }
         .board-controls { display: grid; grid-template-columns: 1fr auto 1fr; gap: 5px; width: 100%; box-sizing: border-box; max-width: 620px; margin: 0 auto; }
         .ctrl-left { display: flex; gap: 5px; }
         .ctrl-center { display: flex; gap: 5px; }
@@ -48,6 +50,8 @@
         .side-tabs {
             display: inline-flex; gap: 2px; align-self: flex-start;
             padding: 2px; border-radius: 999px; background: #f2f4f7; border: 1px solid #e3e7ed;
+            position: absolute; right: 0; bottom: 10px; z-index: 5;
+            box-shadow: 0 10px 24px rgba(16, 24, 40, 0.12);
         }
         .tab-btn {
             appearance: none; border: 0; background: transparent; color: #667085;
@@ -56,13 +60,13 @@
         }
         .tab-btn:hover { color: #344054; background: rgba(255, 255, 255, 0.55); }
         .tab-btn.active { background: #fff; color: #101828; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08); }
-        .tab-panel { display: none; flex: 1 1 0; min-height: 0; }
+        .tab-panel { display: none; flex: 1 1 0; min-height: 0; padding-bottom: 0; }
         .tab-panel.active { display: flex; flex-direction: column; }
         .comment-panel textarea { height: 100%; min-height: 0; }
         .position-labels-panel { gap: 10px; min-height: 0; }
         .label-register-panel, .label-list-panel { box-sizing: border-box; }
         .label-register-panel { padding: 0; display: flex; flex-direction: column; gap: 8px; }
-        .label-list-panel { flex: 1 1 0; min-height: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+        .label-list-panel { flex: 1 1 0; min-height: 0; padding: 0 0 46px; display: flex; flex-direction: column; gap: 8px; }
         .label-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(72px, 0.55fr) auto; gap: 8px; align-items: center; }
         .label-field input {
             width: 100%; box-sizing: border-box; padding: 9px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;
@@ -97,16 +101,21 @@
         .label-leaf-main { flex: 1 1 auto; display: flex; align-items: center; gap: 8px; min-width: 0; }
         .label-leaf-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; padding-left: 6px; }
         .label-leaf-delete {
-            padding: 4px 0; font-size: 12px; background: transparent; border: 0; color: #667085; font-weight: 600;
+            padding: 0 4px; font-size: 16px; line-height: 1; background: transparent; border: 0;
+            color: #98a2b3; font-weight: 500; min-width: 1.2em;
         }
-        .label-leaf-delete:hover { background: transparent; color: #101828; }
-        .label-leaf-delete { color: #b42318; }
+        .label-leaf-delete:hover { background: transparent; color: #667085; }
+        .label-leaf-delete { color: #98a2b3; }
+        body.touch-main .label-register-panel { display: none; }
+        body.touch-main .position-labels-panel { gap: 0; }
+        body.touch-main .label-list-panel { padding-top: 0; }
         @media (max-width: 599px) {
             .ctrl-center button { width: 2.9em; padding-left: 0; padding-right: 0; }
             .ctrl-right { display: grid; grid-template-columns: 1fr 1fr; }
             .ctrl-right button { min-width: 0; padding-left: 0; padding-right: 0; }
             .label-form-actions { display: block; }
             .label-grid { grid-template-columns: 1fr; }
+            .side-tabs { right: 10px; bottom: 10px; }
         }
         @media (min-width: 600px) and (max-width: 1199px) {
             .ctrl-center button { padding: 12px 22px; }
@@ -157,9 +166,9 @@
     </div>
     <div class="right-pane">
         <div class="guide">
-            ・<b>Delete</b> で 1 手削除<br>
+            ・<b>Delete</b> で 1 手削除 / <b>Ctrl+F</b> でコメント表示切替<br>
             ・<b>Ctrl+S</b> で保存 / <b>Ctrl+O</b> で読込<br>
-            ・<b>Ctrl+;</b> でコメント入力切替 / <b>Ctrl+F</b> でコメント表示切替
+            ・<b>Ctrl+;</b> でコメント入力切替 / <b>Ctrl+Shift+;</b>でタブ切替
         </div>
         <div class="side-tabs">
             <button id="commentTabBtn" class="tab-btn active" type="button" onclick="setActiveSideTab('comment')">コメント</button>
@@ -208,6 +217,7 @@
     const naturalCollator = new Intl.Collator('ja', { numeric: true, sensitivity: 'base' });
 
     const canvas = document.getElementById('boardCanvas');
+    canvas.tabIndex = 0;
     const ctx = canvas.getContext('2d');
     const bgCanvas = document.getElementById('bgCanvas');
     const bgCtx = bgCanvas.getContext('2d');
@@ -226,6 +236,7 @@
     const positionLabelErrorText = document.getElementById('positionLabelErrorText');
     const positionLabelErrorAction = document.getElementById('positionLabelErrorAction');
     const positionLabelsTree = document.getElementById('positionLabelsTree');
+    const labelInputs = [labelInput1, labelInput2, labelInput3];
 
     let tree = {}, posDb = {}, positionLabels = createEmptyPositionLabels();
     let currentNodeId = 'r', nextNodeId = 1;
@@ -432,6 +443,38 @@
         positionLabelsPanel.classList.toggle('active', !showComment);
     }
 
+    function toggleSideTab() {
+        setActiveSideTab(activeSideTab === 'comment' ? 'labels' : 'comment');
+    }
+
+    function isLabelInputFocused() {
+        return labelInputs.includes(document.activeElement);
+    }
+
+    function toggleActiveTabFocus() {
+        if (activeSideTab === 'labels') {
+            if (!isTouchMain() && !document.body.classList.contains('touch-main')) {
+                if (isLabelInputFocused()) {
+                    document.activeElement.blur();
+                    canvas.focus();
+                } else {
+                    labelInput1.focus();
+                    labelInput1.select();
+                }
+            } else {
+                canvas.focus();
+            }
+            return;
+        }
+
+        if (document.activeElement === commentArea) {
+            commentArea.blur();
+            canvas.focus();
+        } else {
+            commentArea.focus();
+        }
+    }
+
     function setPositionLabelError(message, actionLabel = '', actionHandler = null) {
         positionLabelError.classList.toggle('active', Boolean(message));
         positionLabelErrorText.textContent = message || '';
@@ -618,7 +661,9 @@
                             const delBtn = document.createElement('button');
                             delBtn.type = 'button';
                             delBtn.className = 'label-leaf-delete';
-                            delBtn.textContent = '削除';
+                            delBtn.textContent = '−';
+                            delBtn.title = '削除';
+                            delBtn.setAttribute('aria-label', '削除');
                             delBtn.addEventListener('click', (e) => {
                                 e.stopPropagation();
                                 confirmDeletePositionLabel(posKey);
@@ -748,6 +793,7 @@
     }
 
     function updateCommentEditable() {
+        document.body.classList.toggle('touch-main', isTouchMain());
         commentArea.readOnly = isTouchMain() || !showHints;
         commentArea.placeholder = isTouchMain() ? '' : '...';
     }
@@ -902,13 +948,21 @@
     }
 
     document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.code === 'Semicolon') {
+            e.preventDefault();
+            toggleSideTab();
+            return;
+        }
         if (document.activeElement === commentArea) {
-            if (e.ctrlKey && e.key === ';') { e.preventDefault(); commentArea.blur(); }
+            if ((e.ctrlKey || e.metaKey) && e.code === 'Semicolon') {
+                e.preventDefault();
+                toggleActiveTabFocus();
+            }
             return;
         }
         if (e.ctrlKey || e.metaKey) {
             const key = e.key.toLowerCase();
-            if (e.key === ';') { e.preventDefault(); commentArea.focus(); }
+            if (e.code === 'Semicolon') { e.preventDefault(); toggleActiveTabFocus(); }
             else if (key === 's') { e.preventDefault(); saveKifu(); }
             else if (key === 'o') { e.preventDefault(); openFile(); }
             else if (key === 'f') { e.preventDefault(); toggleHints(); }
