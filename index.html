@@ -93,7 +93,7 @@
     </div>
     <div class="right-pane">
         <div class="guide">
-            ・<b>Delete</b> で 1 手削除 / <b>Ctrl+Z</b> で Undo<br>
+            ・<b>Delete</b> で 1 手削除<br>
             ・<b>Ctrl+S</b> で保存 / <b>Ctrl+O</b> で読込<br>
             ・<b>Ctrl+;</b> でコメント入力切替 / <b>Ctrl+F</b> でコメント表示切替
         </div>
@@ -117,7 +117,7 @@
     const commentArea = document.getElementById('commentArea');
 
     let tree = {}, posDb = {}; 
-    let currentNodeId = 'r', nextNodeId = 1, undoStack = []; 
+    let currentNodeId = 'r', nextNodeId = 1; 
     let showHints = true, showCoords = true;
 
     function setupCanvas() {
@@ -131,7 +131,8 @@
 
     function initGame() {
         tree = { 'r': { i: 'r', p: null, c: [], x: null, y: null, o: 0, m: 0 } };
-        posDb = {}; currentNodeId = 'r'; nextNodeId = 1; undoStack = [];
+        posDb = {}; currentNodeId = 'r'; nextNodeId = 1;
+        clearCanonicalCache();
         setupCanvas(); updateUI();
     }
 
@@ -167,6 +168,12 @@
     const canonicalCache = {};
     let cacheSize = 0;
     const MAX_CACHE = 5000;
+
+    function clearCanonicalCache() {
+        for (let key in canonicalCache) delete canonicalCache[key];
+        cacheSize = 0;
+    }
+
     function getCanonicalInfo(nodeId) {
         if (canonicalCache[nodeId]) return canonicalCache[nodeId];
 
@@ -257,8 +264,6 @@
         }
     }
 
-    function pushUndo() { undoStack.push(JSON.stringify({ t: tree, p: posDb, c: currentNodeId, n: nextNodeId })); if (undoStack.length > 50) undoStack.shift(); }
-
     function isTouchMain() {
         return window.matchMedia('(pointer: coarse)').matches;
     }
@@ -287,7 +292,7 @@
             let currentText = posDb[key].l[`${cx},${cy}`] || "";
             let newText = prompt("交点テキストを入力:", currentText);
             if (newText !== null) {
-                pushUndo(); if (newText === "") delete posDb[key].l[`${cx},${cy}`]; else posDb[key].l[`${cx},${cy}`] = newText;
+                if (newText === "") delete posDb[key].l[`${cx},${cy}`]; else posDb[key].l[`${cx},${cy}`] = newText;
                 updateUI();
             }
             return;
@@ -298,7 +303,6 @@
         let temp = currentNodeId;
         while (temp !== 'r') { if (tree[temp].x === px && tree[temp].y === py) return; temp = tree[temp].p; }
         
-        pushUndo();
         if (!posDb[key]) posDb[key] = { c: "", l: {}, n: {} };
         if (!posDb[key].n) posDb[key].n = {};
         posDb[key].n[`${cx},${cy}`] = 1;
@@ -374,11 +378,9 @@
         let c = tree[currentNodeId], t = c.l || (c.c.length > 0 ? c.c[0] : null);
         while (t) { c = tree[t]; if (c.c.length > 1 || c.c.length === 0) { currentNodeId = c.i; updateUI(); return; } t = c.l || (c.c.length > 0 ? c.c[0] : null); }
     }
-    function undo() { if (undoStack.length === 0) return; const s = JSON.parse(undoStack.pop()); tree = s.t; posDb = s.p; currentNodeId = s.c; nextNodeId = s.n; updateUI(); }
-    
     function deleteCurrentNode() {
         if (currentNodeId === 'r') return;
-        pushUndo();
+        if (!confirm('現在の手以降の変化を削除します。よろしいですか？')) return;
         const tid = currentNodeId;
         const nodeToRemove = tree[tid];
         const pid = nodeToRemove.p;
@@ -409,7 +411,7 @@
         if (e.ctrlKey || e.metaKey) {
             const k = e.key.toLowerCase();
             if (e.key === ';') { e.preventDefault(); commentArea.focus(); }
-            else if (k === 'z') { e.preventDefault(); undo(); } else if (k === 's') { e.preventDefault(); saveKifu(); }
+            else if (k === 's') { e.preventDefault(); saveKifu(); }
             else if (k === 'o') { e.preventDefault(); openFile(); } else if (k === 'f') { e.preventDefault(); toggleHints(); } return;
         }
         switch(e.key) {
@@ -440,7 +442,7 @@
     function loadFromText(text) {
         try {
             const d = JSON.parse(text);
-            tree = d.t; posDb = d.p || {}; currentNodeId = d.c; nextNodeId = d.n; undoStack = []; updateUI();
+            tree = d.t; posDb = d.p || {}; currentNodeId = d.c; nextNodeId = d.n; clearCanonicalCache(); updateUI();
         } catch(err) { alert('読込失敗'); }
     }
 
