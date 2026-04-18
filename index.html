@@ -223,6 +223,9 @@
     const bgCtx = bgCanvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
     const commentArea = document.getElementById('commentArea');
+    const leftPane = document.querySelector('.left-pane');
+    const rightPane = document.querySelector('.right-pane');
+    const boardControls = document.querySelector('.board-controls');
     const commentTabBtn = document.getElementById('commentTabBtn');
     const positionLabelsTabBtn = document.getElementById('positionLabelsTabBtn');
     const commentPanel = document.getElementById('commentPanel');
@@ -237,6 +240,8 @@
     const positionLabelErrorAction = document.getElementById('positionLabelErrorAction');
     const positionLabelsTree = document.getElementById('positionLabelsTree');
     const labelInputs = [labelInput1, labelInput2, labelInput3];
+    const boardControlsAnchor = document.createComment('board-controls-anchor');
+    leftPane.insertBefore(boardControlsAnchor, boardControls);
 
     let tree = {}, posDb = {}, positionLabels = createEmptyPositionLabels();
     let currentNodeId = 'r', nextNodeId = 1;
@@ -792,14 +797,37 @@
         return window.matchMedia('(pointer: coarse)').matches;
     }
 
+    function isTouchPhoneLayout() {
+        return isTouchMain() && window.innerWidth <= 599;
+    }
+
+    function restoreBoardControlsPosition() {
+        if (boardControlsAnchor.parentNode !== leftPane) leftPane.insertBefore(boardControlsAnchor, leftPane.firstChild);
+        if (boardControls.parentNode !== leftPane || boardControls.previousSibling !== boardControlsAnchor) {
+            leftPane.insertBefore(boardControls, boardControlsAnchor.nextSibling);
+        }
+    }
+
+    function updateTouchPhoneLayout() {
+        if (isTouchPhoneLayout()) {
+            if (boardControls.parentNode !== document.querySelector('.container') || boardControls.previousSibling !== rightPane) {
+                rightPane.insertAdjacentElement('afterend', boardControls);
+            }
+        } else {
+            restoreBoardControlsPosition();
+        }
+    }
+
     function updateCommentEditable() {
         document.body.classList.toggle('touch-main', isTouchMain());
         commentArea.readOnly = isTouchMain() || !showHints;
         commentArea.placeholder = isTouchMain() ? '' : '...';
+        updateTouchPhoneLayout();
     }
 
     updateCommentEditable();
     window.matchMedia('(pointer: coarse)').addEventListener('change', updateCommentEditable);
+    window.addEventListener('resize', updateTouchPhoneLayout);
 
     canvas.addEventListener('click', (e) => {
         const rect = canvas.getBoundingClientRect();
