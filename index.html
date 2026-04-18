@@ -66,7 +66,7 @@
         .position-labels-panel { gap: 10px; min-height: 0; }
         .label-register-panel, .label-list-panel { box-sizing: border-box; }
         .label-register-panel { padding: 0; display: flex; flex-direction: column; gap: 8px; }
-        .label-list-panel { flex: 1 1 0; min-height: 0; padding: 0 0 46px; display: flex; flex-direction: column; gap: 8px; }
+        .label-list-panel { flex: 1 1 0; min-height: 0; padding: 0 0 46px; display: flex; flex-direction: column; gap: 8px; touch-action: pan-y; }
         .label-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(72px, 0.55fr) auto; gap: 8px; align-items: center; }
         .label-field input {
             width: 100%; box-sizing: border-box; padding: 9px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;
@@ -80,7 +80,7 @@
         }
         .label-error.active { display: flex; }
         .label-error button { padding: 7px 10px; font-size: 12px; }
-        .label-tree { flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+        .label-tree { flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
         .label-empty { color: #666; font-size: 13px; padding: 8px 4px; }
         .label-group, .label-subgroup, .label-leaf { background: transparent; }
         .label-group-header, .label-subgroup-header, .label-leaf-row {
@@ -1076,7 +1076,12 @@
     });
 
     canvas.addEventListener('contextmenu', (e) => { e.preventDefault(); goBack(); });
-    if (isTouchMain()) document.addEventListener('touchmove', (e) => { if (!commentArea.contains(e.target)) e.preventDefault(); }, { passive: false });
+    if (isTouchMain()) {
+        document.addEventListener('touchmove', (e) => {
+            const allowScroll = commentArea.contains(e.target) || positionLabelsPanel.contains(e.target);
+            if (!allowScroll) e.preventDefault();
+        }, { passive: false });
+    }
 
     document.addEventListener('dragover', (e) => {
         e.preventDefault();
