@@ -137,7 +137,15 @@
         .label-leaf-delete { color: #98a2b3; }
         body.touch-main .label-register-panel { display: none; }
         body.touch-main .container { flex-wrap: wrap; }
-        body.touch-main .board-controls { flex: 0 0 100%; order: 3; padding-bottom: 10px; }
+        body.bottom-controls-layout .board-controls {
+            position: fixed; left: 50%; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+            width: min(620px, calc(100vw - 16px)); margin: 0; padding: 8px; border-radius: 16px;
+            background: rgba(255, 255, 255, 0.96); box-shadow: 0 10px 28px rgba(16, 24, 40, 0.18); z-index: 30;
+        }
+        body.bottom-controls-layout .side-tabs {
+            bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+            z-index: 31;
+        }
         body.touch-main .position-labels-panel { gap: 0; }
         body.touch-main .label-list-panel { padding-top: 0; }
         @media (max-width: 599px) {
@@ -159,8 +167,12 @@
             .board-container { padding-top: 10px; }
             .left-pane { flex: 0 0 auto; }
             .right-pane { flex: 1 1 0; min-height: 0; overflow: hidden; margin: 0 auto; width: 100%; max-width: 620px; padding: 0 0 10px; box-sizing: border-box; }
+            body.bottom-controls-layout .right-pane { padding-bottom: 92px; }
             .guide { display: none; }
             textarea { height: 100%; min-height: 0; margin: 0; width: 100%; line-height: 1.45; }
+        }
+        @media (min-width: 1200px) {
+            body.bottom-controls-layout .right-pane { padding-bottom: 96px; }
         }
         @media (min-width: 1200px) {
             .container { flex-wrap: nowrap; }
@@ -897,8 +909,13 @@
         toggleCoordsActionBtn.classList.toggle('active', showCoords);
     }
 
+    function shouldShowBottomControls() {
+        return isTouchMain() || window.innerWidth <= 1199;
+    }
+
     function updateTouchMainLayout() {
-        if (isTouchMain()) {
+        document.body.classList.toggle('bottom-controls-layout', shouldShowBottomControls());
+        if (shouldShowBottomControls()) {
             if (boardControls.parentNode !== container || boardControls.previousSibling !== rightPane) {
                 container.insertBefore(boardControls, rightPane.nextSibling);
             }
