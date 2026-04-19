@@ -95,6 +95,7 @@
             position: absolute; right: 0; bottom: 10px; z-index: 5;
             box-shadow: 0 10px 24px rgba(16, 24, 40, 0.12);
         }
+        .side-tabs[hidden] { display: none !important; }
         .tab-btn {
             appearance: none; border: 0; background: transparent; color: #667085;
             border-radius: 999px; padding: 5px 11px; font-size: 12px; font-weight: 600; letter-spacing: 0.01em;
@@ -283,6 +284,7 @@
                         </span>
                     </button>
                     <div id="viewMenu" class="control-menu-popup" hidden>
+                        <button id="toggleSideTabsActionBtn" class="control-menu-item" type="button" onclick="toggleSideTabsFromMenu()">タブ切替ボタン</button>
                         <button id="toggleCoordsActionBtn" class="control-menu-item" type="button" onclick="toggleCoordsFromMenu()">座標</button>
                         <button id="toggleHintsActionBtn" class="control-menu-item" type="button" onclick="toggleHintsFromMenu()">コメント</button>
                     </div>
@@ -297,7 +299,7 @@
             ・<b>Ctrl+S</b> で保存 / <b>Ctrl+O</b> で読込<br>
             ・<b>Ctrl+;</b> でコメント入力切替 / <b>Ctrl+Shift+;</b>でタブ切替
         </div>
-        <div class="side-tabs">
+        <div class="side-tabs" hidden>
             <button id="commentTabBtn" class="tab-btn active" type="button" onclick="setActiveSideTab('comment')">コメント</button>
             <button id="positionLabelsTabBtn" class="tab-btn" type="button" onclick="setActiveSideTab('labels')">索引</button>
         </div>
@@ -358,8 +360,10 @@
     const fileMenu = document.getElementById('fileMenu');
     const viewMenuBtn = document.getElementById('viewMenuBtn');
     const viewMenu = document.getElementById('viewMenu');
+    const toggleSideTabsActionBtn = document.getElementById('toggleSideTabsActionBtn');
     const toggleHintsActionBtn = document.getElementById('toggleHintsActionBtn');
     const toggleCoordsActionBtn = document.getElementById('toggleCoordsActionBtn');
+    const sideTabs = document.querySelector('.side-tabs');
     const commentTabBtn = document.getElementById('commentTabBtn');
     const positionLabelsTabBtn = document.getElementById('positionLabelsTabBtn');
     const commentPanel = document.getElementById('commentPanel');
@@ -380,7 +384,7 @@
 
     let tree = {}, posDb = {}, positionLabels = createEmptyPositionLabels();
     let currentNodeId = 'r', nextNodeId = 1;
-    let showHints = true, showCoords = true, activeSideTab = 'comment';
+    let showHints = true, showCoords = true, showSideTabs = false, activeSideTab = 'comment';
     let highlightedLabelPosKey = null;
     let labelErrorActionHandler = null;
     let currentOpenControlMenu = null;
@@ -592,8 +596,18 @@
         positionLabelsPanel.classList.toggle('active', !showComment);
     }
 
+    function setSideTabsVisible(visible) {
+        showSideTabs = visible;
+        sideTabs.hidden = !visible;
+        updateViewMenuButtons();
+    }
+
     function toggleSideTab() {
         setActiveSideTab(activeSideTab === 'comment' ? 'labels' : 'comment');
+    }
+
+    function toggleSideTabsVisibility() {
+        setSideTabsVisible(!showSideTabs);
     }
 
     function togglePositionLabelsFocus() {
@@ -1348,8 +1362,10 @@
     }
 
     function updateViewMenuButtons() {
+        toggleSideTabsActionBtn.textContent = 'タブ切替ボタン';
         toggleHintsActionBtn.textContent = 'コメント';
         toggleCoordsActionBtn.textContent = '座標';
+        toggleSideTabsActionBtn.classList.toggle('active', showSideTabs);
         toggleHintsActionBtn.classList.toggle('active', showHints);
         toggleCoordsActionBtn.classList.toggle('active', showCoords);
     }
@@ -1518,6 +1534,11 @@
     function toggleCoordsFromMenu() {
         closeControlMenus();
         toggleCoords();
+    }
+
+    function toggleSideTabsFromMenu() {
+        closeControlMenus();
+        toggleSideTabsVisibility();
     }
 
     function goBack() { if (tree[currentNodeId].p) { currentNodeId = tree[currentNodeId].p; updateUI(); } }
