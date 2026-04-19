@@ -1012,7 +1012,7 @@
                             row.dataset.posKey = posKey;
                             row.addEventListener('click', () => {
                                 focusedLabelItemKey = leafItemKey;
-                                focusPositionLabelsTree(leafItemKey);
+                                if (!isTouchMain()) focusPositionLabelsTree(leafItemKey);
                                 jumpToPositionLabel(posKey);
                             });
                             if (posKey === currentPosKey) row.classList.add('current');
@@ -1110,7 +1110,7 @@
         currentNodeId = targetNodeId;
         highlightedLabelPosKey = posKey;
         focusedLabelItemKey = makeTreeItemKey('leaf', '', '', posKey);
-        requestAnimationFrame(() => updateUI());
+        updateUI();
     }
 
     function getFocusedLabelItem() {
