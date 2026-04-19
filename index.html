@@ -68,7 +68,7 @@
         .board-controls .control-menu-item.active::after { content: '✓'; color: #667085; }
         .nav-btn {
             padding: 0; display: inline-flex; align-items: center; justify-content: center;
-            text-align: center; line-height: 1;
+            text-align: center; line-height: 1; height: 48px;
         }
         .nav-btn.branch { width: 3.8em; letter-spacing: -0.08em; }
         .nav-btn.step { width: 4.7em; }
@@ -158,6 +158,7 @@
             .ctrl-center { gap: 4px; }
             .menu-icon-btn { width: 44px; height: 42px; }
             .control-icon { width: 20px; height: 20px; }
+            .nav-btn { height: 42px; }
             .nav-btn.branch { width: 3em; }
             .nav-btn.step { width: 4.5em; }
             .label-form-actions { display: block; }
@@ -803,6 +804,17 @@
         return null;
     }
 
+    function updatePreferredPathToNode(targetNodeId) {
+        let nodeId = targetNodeId;
+        while (nodeId && nodeId !== 'r') {
+            const node = tree[nodeId];
+            const parent = tree[node.p];
+            if (!node || !parent) break;
+            parent.l = nodeId;
+            nodeId = node.p;
+        }
+    }
+
     function jumpToPositionLabel(posKey) {
         const entry = positionLabels.byPosKey[posKey];
         if (!entry) return;
@@ -811,6 +823,7 @@
             alert('代表手順が存在しません');
             return;
         }
+        updatePreferredPathToNode(targetNodeId);
         currentNodeId = targetNodeId;
         highlightedLabelPosKey = posKey;
         updateUI();
