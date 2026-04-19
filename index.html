@@ -28,6 +28,10 @@
         }
         #boardCanvas:focus, #boardCanvas:focus-visible { outline: none; }
         .board-controls { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; width: 100%; box-sizing: border-box; max-width: 620px; margin: 0 auto; align-items: center; }
+        .visually-hidden-file-input {
+            position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+            overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+        }
         .ctrl-left, .ctrl-center, .ctrl-right { display: flex; align-items: center; }
         .ctrl-left, .ctrl-right { gap: 6px; }
         .ctrl-center { gap: 8px; justify-content: center; min-width: 0; }
@@ -255,7 +259,7 @@
                     </div>
                 </div>
             </div>
-            <input type="file" id="fileInput" accept=".json" style="display:none;">
+            <input type="file" id="fileInput" class="visually-hidden-file-input" accept=".json" tabindex="-1" aria-hidden="true">
         </div>
     </div>
     <div class="right-pane">
@@ -340,6 +344,7 @@
     const positionLabelErrorText = document.getElementById('positionLabelErrorText');
     const positionLabelErrorAction = document.getElementById('positionLabelErrorAction');
     const positionLabelsTree = document.getElementById('positionLabelsTree');
+    const fileInput = document.getElementById('fileInput');
     const labelInputs = [labelInput1, labelInput2, labelInput3];
     const boardControlsAnchor = document.createComment('board-controls-anchor');
     leftPane.insertBefore(boardControlsAnchor, boardControls);
@@ -1566,6 +1571,20 @@
 
     let fileHandle = null;
 
+    function openFallbackFilePicker() {
+        fileInput.value = '';
+        if (typeof fileInput.showPicker === 'function') {
+            try {
+                fileInput.showPicker();
+                return;
+            } catch (error) {
+                // Fall back to click when showPicker is unavailable or blocked.
+            }
+        }
+        fileInput.focus({ preventScroll: true });
+        fileInput.click();
+    }
+
     async function openFile() {
         if (window.showOpenFilePicker) {
             try {
@@ -1577,7 +1596,7 @@
                 if (e.name !== 'AbortError') alert('読込失敗');
             }
         } else {
-            document.getElementById('fileInput').click();
+            openFallbackFilePicker();
         }
     }
 
@@ -1648,7 +1667,7 @@
         await saveKifu();
     }
 
-    document.getElementById('fileInput').addEventListener('change', (e) => {
+    fileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
         fileHandle = null;
