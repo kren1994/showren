@@ -117,6 +117,7 @@
         .label-group, .label-subgroup, .label-leaf { background: transparent; }
         .label-group-header, .label-subgroup-header, .label-leaf-row {
             display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; padding: 7px 2px;
+            -webkit-tap-highlight-color: transparent;
         }
         .label-group-header, .label-subgroup-header {
             background: transparent; cursor: pointer; border: 0; border-bottom: 1px solid #edf0f4;
@@ -832,7 +833,7 @@
         updatePreferredPathToNode(targetNodeId);
         currentNodeId = targetNodeId;
         highlightedLabelPosKey = posKey;
-        updateUI();
+        requestAnimationFrame(() => updateUI());
     }
 
     function drawBoard() {
