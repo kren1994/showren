@@ -66,8 +66,11 @@
         .board-controls .control-menu-item:focus-visible { outline: none; }
         .board-controls .control-menu-item::after { content: ''; width: 1em; flex: 0 0 1em; }
         .board-controls .control-menu-item.active::after { content: '✓'; color: #667085; }
-        .nav-btn { padding-left: 0; padding-right: 0; }
-        .nav-btn.branch { width: 3.8em; }
+        .nav-btn {
+            padding: 0; display: inline-flex; align-items: center; justify-content: center;
+            text-align: center; line-height: 1;
+        }
+        .nav-btn.branch { width: 3.8em; letter-spacing: -0.08em; }
         .nav-btn.step { width: 4.7em; }
         textarea {
             width: 100%; flex-grow: 1; min-height: 150px; resize: none; overflow-y: auto; touch-action: pan-y; padding: 10px; font-size: 16px;
@@ -155,14 +158,16 @@
             .ctrl-center { gap: 4px; }
             .menu-icon-btn { width: 44px; height: 42px; }
             .control-icon { width: 20px; height: 20px; }
-            .nav-btn.branch { width: 2.7em; min-height: 44px; }
-            .nav-btn.step { width: 4em; min-height: 44px; }
+            .nav-btn.branch { width: 3em; }
+            .nav-btn.step { width: 4.5em; }
             .label-form-actions { display: block; }
             .label-grid { grid-template-columns: 1fr; }
             .side-tabs { right: 10px; bottom: 10px; }
         }
         @media (min-width: 600px) and (max-width: 1199px) {
-            .ctrl-center button { padding: 12px 22px; }
+            .ctrl-center { gap: 6px; }
+            .nav-btn.branch { width: 3.6em; }
+            .nav-btn.step { width: 5.1em; }
         }
         @media (max-width: 1199px) {
             html, body { height: 100%; overflow: hidden; }
