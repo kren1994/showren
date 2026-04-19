@@ -32,12 +32,12 @@
         .ctrl-left, .ctrl-right { gap: 6px; }
         .ctrl-center { gap: 8px; justify-content: center; min-width: 0; }
         .control-menu { position: relative; }
-        .board-controls button, .label-leaf-delete, .label-form-btn {
+        .board-controls button, .label-action-btn, .label-form-btn {
             padding: 12px 14px; border: 1px solid #ccc; background: #f9f9f9;
             border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; touch-action: manipulation;
             white-space: nowrap; user-select: none; -webkit-user-select: none;
         }
-        .board-controls button:hover, .label-leaf-delete:hover, .label-form-btn:hover {
+        .board-controls button:hover, .label-action-btn:hover, .label-form-btn:hover {
             background: #e9e9e9;
         }
         .menu-icon-btn {
@@ -120,10 +120,24 @@
             -webkit-tap-highlight-color: transparent;
         }
         .label-group-header, .label-subgroup-header {
-            background: transparent; cursor: pointer; border: 0; border-bottom: 1px solid #edf0f4;
-            color: #344054; justify-content: flex-start; text-align: left;
+            border-bottom: 1px solid #edf0f4;
         }
-        .label-group-header:hover, .label-subgroup-header:hover { color: #101828; }
+        .label-item-main {
+            flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 8px;
+            padding: 0; border: 0; background: transparent; color: #344054; text-align: left;
+            font: inherit; cursor: pointer;
+        }
+        .label-item-main:hover { color: #101828; background: transparent; }
+        .label-item-actions {
+            flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: flex-end; gap: 2px;
+            margin-left: auto;
+        }
+        .label-tree:focus { outline: none; }
+        .label-tree:focus-visible { outline: none; }
+        .label-item-focused {
+            border-radius: 6px; background: #eef4ff;
+            box-shadow: inset 0 0 0 1px #bfd2fb;
+        }
         .label-toggle { width: 1.2em; text-align: center; color: #98a2b3; font-size: 11px; }
         .label-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
         .label-count { color: #98a2b3; font-size: 11px; font-weight: 500; }
@@ -133,12 +147,13 @@
         .label-leaf-row.highlight { box-shadow: inset 2px 0 0 #7eb1ff; }
         .label-leaf-main { flex: 1 1 auto; display: flex; align-items: center; gap: 8px; min-width: 0; }
         .label-leaf-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; padding-left: 6px; }
-        .label-leaf-delete {
+        .label-action-btn {
             padding: 0 4px; font-size: 16px; line-height: 1; background: transparent; border: 0;
             color: #98a2b3; font-weight: 500; min-width: 1.2em;
         }
-        .label-leaf-delete:hover { background: transparent; color: #667085; }
-        .label-leaf-delete { color: #98a2b3; }
+        .label-action-btn:hover { background: transparent; color: #667085; }
+        .label-action-btn { color: #98a2b3; }
+        .label-action-btn[disabled] { visibility: hidden; pointer-events: none; }
         body.touch-main .label-register-panel { display: none; }
         body.touch-main .container { flex-wrap: wrap; }
         body.bottom-controls-layout .board-controls {
@@ -280,7 +295,7 @@
                 </div>
             </div>
             <div class="label-list-panel">
-                <div id="positionLabelsTree" class="label-tree"></div>
+                <div id="positionLabelsTree" class="label-tree" tabindex="0" role="tree" aria-label="局面ラベル"></div>
             </div>
         </div>
     </div>
@@ -335,6 +350,8 @@
     let highlightedLabelPosKey = null;
     let labelErrorActionHandler = null;
     let currentOpenControlMenu = null;
+    let focusedLabelItemKey = null;
+    let visiblePositionLabelItems = [];
     const collapsedLabelGroups = new Set();
     const collapsedLabelSubgroups = new Set();
 
@@ -348,6 +365,10 @@
 
     function subgroupKey(k1, k2) {
         return JSON.stringify([k1, k2]);
+    }
+
+    function makeTreeItemKey(type, k1 = '', k2 = '', posKey = '') {
+        return JSON.stringify([type, k1, k2, posKey]);
     }
 
     function normalizePositionLabels(pl) {
@@ -373,6 +394,8 @@
     function clearPositionLabelsState() {
         positionLabels = createEmptyPositionLabels();
         highlightedLabelPosKey = null;
+        focusedLabelItemKey = null;
+        visiblePositionLabelItems = [];
         collapsedLabelGroups.clear();
         collapsedLabelSubgroups.clear();
         clearPositionLabelForm();
@@ -546,7 +569,7 @@
     function toggleActiveTabFocus() {
         if (activeSideTab === 'labels') {
             if (!isTouchMain() && !document.body.classList.contains('touch-main')) {
-                if (isLabelInputFocused()) {
+                if (document.activeElement === positionLabelsTree || isLabelInputFocused()) {
                     document.activeElement.blur();
                     canvas.focus();
                 } else {
@@ -596,6 +619,7 @@
     function revealPositionLabel(posKey) {
         if (!positionLabels.byPosKey[posKey]) return;
         highlightedLabelPosKey = posKey;
+        focusedLabelItemKey = makeTreeItemKey('leaf', '', '', posKey);
         expandLabelPath(posKey);
         setActiveSideTab('labels');
         renderPositionLabelsList(getCurrentPosKey());
@@ -640,6 +664,7 @@
         positionLabels.byPosKey[posKey] = { k1, k2, k3, rep: currentNodeId };
         positionLabels.byName[nameKey] = posKey;
         highlightedLabelPosKey = posKey;
+        focusedLabelItemKey = makeTreeItemKey('leaf', '', '', posKey);
         expandLabelPath(posKey);
         clearPositionLabelError();
         updateUI();
@@ -658,8 +683,185 @@
         return roots;
     }
 
+    function getVisibleLabelItemIndex(itemKey) {
+        return visiblePositionLabelItems.findIndex((item) => item.key === itemKey);
+    }
+
+    function ensureFocusedLabelItem(currentPosKey) {
+        if (!visiblePositionLabelItems.length) {
+            focusedLabelItemKey = null;
+            return;
+        }
+        if (focusedLabelItemKey && getVisibleLabelItemIndex(focusedLabelItemKey) !== -1) return;
+        if (highlightedLabelPosKey) {
+            const highlightedKey = makeTreeItemKey('leaf', '', '', highlightedLabelPosKey);
+            if (getVisibleLabelItemIndex(highlightedKey) !== -1) {
+                focusedLabelItemKey = highlightedKey;
+                return;
+            }
+        }
+        if (currentPosKey && positionLabels.byPosKey[currentPosKey]) {
+            const currentKey = makeTreeItemKey('leaf', '', '', currentPosKey);
+            if (getVisibleLabelItemIndex(currentKey) !== -1) {
+                focusedLabelItemKey = currentKey;
+                return;
+            }
+        }
+        focusedLabelItemKey = visiblePositionLabelItems[0].key;
+    }
+
+    function scrollFocusedLabelItemIntoView() {
+        if (!focusedLabelItemKey) return;
+        const focused = positionLabelsTree.querySelector(`[data-item-key="${CSS.escape(focusedLabelItemKey)}"]`);
+        if (focused) focused.scrollIntoView({ block: 'nearest' });
+    }
+
+    function focusPositionLabelsTree(itemKey = null) {
+        if (itemKey) focusedLabelItemKey = itemKey;
+        positionLabelsTree.focus();
+        renderPositionLabelsList(getCurrentPosKey());
+        requestAnimationFrame(scrollFocusedLabelItemIntoView);
+    }
+
+    function createLabelActionButton(text, title, onClick) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'label-action-btn';
+        button.textContent = text;
+        button.title = title;
+        button.setAttribute('aria-label', title);
+        button.addEventListener('click', (event) => {
+            event.stopPropagation();
+            onClick();
+        });
+        return button;
+    }
+
+    function getLabelEntriesForGroup(k1) {
+        return Object.entries(positionLabels.byPosKey).filter(([, entry]) => entry.k1 === k1);
+    }
+
+    function getLabelEntriesForSubgroup(k1, k2) {
+        return Object.entries(positionLabels.byPosKey).filter(([, entry]) => entry.k1 === k1 && entry.k2 === k2);
+    }
+
+    function renameLabelEntries(entries, getNextValues, successMessage) {
+        if (!entries.length) return false;
+
+        const plannedEntries = entries.map(([posKey, entry]) => ({ posKey, entry, next: getNextValues(entry) }));
+        for (const { posKey, next } of plannedEntries) {
+            const nextName = buildLabelName(next.k1, next.k2, next.k3);
+            const conflictPosKey = positionLabels.byName[nextName];
+            if (conflictPosKey && conflictPosKey !== posKey) {
+                showToast(`局面ラベルが既に存在します：${nextName}`);
+                return false;
+            }
+        }
+
+        for (const { entry } of plannedEntries) {
+            delete positionLabels.byName[buildLabelName(entry.k1, entry.k2, entry.k3)];
+        }
+        for (const { posKey, entry, next } of plannedEntries) {
+            entry.k1 = next.k1;
+            entry.k2 = next.k2;
+            entry.k3 = next.k3;
+            positionLabels.byName[buildLabelName(entry.k1, entry.k2, entry.k3)] = posKey;
+        }
+
+        clearPositionLabelError();
+        updateUI();
+        showToast(successMessage);
+        return true;
+    }
+
+    function promptRenameLabel(currentName, label) {
+        const nextName = prompt(label, currentName);
+        if (nextName === null) return null;
+        const trimmed = nextName.trim();
+        if (!trimmed) {
+            showToast('空の名前にはできません');
+            return null;
+        }
+        return trimmed;
+    }
+
+    function renameFirstLevelLabel(oldK1) {
+        const nextK1 = promptRenameLabel(oldK1, '第1階層名を入力');
+        if (!nextK1 || nextK1 === oldK1) return;
+        const entries = getLabelEntriesForGroup(oldK1);
+        const oldCollapsed = collapsedLabelGroups.has(oldK1);
+        const collapsedK2Names = Array.from(new Set(
+            entries
+                .map(([, entry]) => entry.k2)
+                .filter((k2) => collapsedLabelSubgroups.has(subgroupKey(oldK1, k2)))
+        ));
+        if (renameLabelEntries(entries, (entry) => ({ k1: nextK1, k2: entry.k2, k3: entry.k3 }), '第1階層名を変更しました')) {
+            collapsedLabelGroups.delete(oldK1);
+            if (oldCollapsed) collapsedLabelGroups.add(nextK1);
+            for (const k2 of collapsedK2Names) {
+                collapsedLabelSubgroups.delete(subgroupKey(oldK1, k2));
+                collapsedLabelSubgroups.add(subgroupKey(nextK1, k2));
+            }
+            focusedLabelItemKey = makeTreeItemKey('group', nextK1);
+            renderPositionLabelsList(getCurrentPosKey());
+        }
+    }
+
+    function renameSecondLevelLabel(k1, oldK2) {
+        const nextK2 = promptRenameLabel(oldK2, '第2階層名を入力');
+        if (!nextK2 || nextK2 === oldK2) return;
+        const entries = getLabelEntriesForSubgroup(k1, oldK2);
+        const oldKey = subgroupKey(k1, oldK2);
+        const wasCollapsed = collapsedLabelSubgroups.has(oldKey);
+        if (renameLabelEntries(entries, (entry) => ({ k1: entry.k1, k2: nextK2, k3: entry.k3 }), '第2階層名を変更しました')) {
+            collapsedLabelSubgroups.delete(oldKey);
+            if (wasCollapsed) collapsedLabelSubgroups.add(subgroupKey(k1, nextK2));
+            focusedLabelItemKey = makeTreeItemKey('subgroup', k1, nextK2);
+            renderPositionLabelsList(getCurrentPosKey());
+        }
+    }
+
+    function renameThirdLevelLabel(posKey) {
+        const entry = positionLabels.byPosKey[posKey];
+        if (!entry) return;
+        const nextK3 = promptRenameLabel(entry.k3, '第3階層名を入力');
+        if (!nextK3 || nextK3 === entry.k3) return;
+        if (renameLabelEntries([[posKey, entry]], () => ({ k1: entry.k1, k2: entry.k2, k3: nextK3 }), '第3階層名を変更しました')) {
+            focusedLabelItemKey = makeTreeItemKey('leaf', '', '', posKey);
+            renderPositionLabelsList(getCurrentPosKey());
+        }
+    }
+
+    function confirmDeleteFirstLevelLabel(k1) {
+        const posKeys = getLabelEntriesForGroup(k1).map(([posKey]) => posKey);
+        if (!posKeys.length) return false;
+        if (!confirm(`第1階層「${k1}」を削除します。配下の ${posKeys.length} 件も削除されます。よろしいですか？`)) return false;
+        collapsedLabelGroups.delete(k1);
+        for (const [, entry] of getLabelEntriesForGroup(k1)) {
+            collapsedLabelSubgroups.delete(subgroupKey(k1, entry.k2));
+        }
+        deletePositionLabelsByPosKeys(posKeys);
+        focusedLabelItemKey = null;
+        updateUI();
+        showToast('ラベルを削除しました');
+        return true;
+    }
+
+    function confirmDeleteSecondLevelLabel(k1, k2) {
+        const posKeys = getLabelEntriesForSubgroup(k1, k2).map(([posKey]) => posKey);
+        if (!posKeys.length) return false;
+        if (!confirm(`第2階層「${k1}/${k2}」を削除します。配下の ${posKeys.length} 件も削除されます。よろしいですか？`)) return false;
+        collapsedLabelSubgroups.delete(subgroupKey(k1, k2));
+        deletePositionLabelsByPosKeys(posKeys);
+        focusedLabelItemKey = null;
+        updateUI();
+        showToast('ラベルを削除しました');
+        return true;
+    }
+
     function renderPositionLabelsList(currentPosKey) {
         positionLabelsTree.innerHTML = '';
+        visiblePositionLabelItems = [];
         const treeData = buildFilteredPositionLabelTree();
         const yearKeys = Object.keys(treeData).sort((a, b) => naturalCollator.compare(b, a));
         if (!yearKeys.length) {
@@ -667,20 +869,28 @@
             empty.className = 'label-empty';
             empty.textContent = Object.keys(positionLabels.byPosKey).length === 0 ? '局面ラベルはまだありません。' : '検索条件に一致する局面ラベルがありません。';
             positionLabelsTree.appendChild(empty);
+            focusedLabelItemKey = null;
             return;
         }
 
+        const showEditButtons = !isTouchMain();
         const forceExpand = false;
         for (const year of yearKeys) {
             const group = treeData[year];
             const yearExpanded = forceExpand || !collapsedLabelGroups.has(year);
+            const groupItemKey = makeTreeItemKey('group', year);
+            visiblePositionLabelItems.push({ key: groupItemKey, type: 'group', k1: year, expanded: yearExpanded });
             const groupEl = document.createElement('div');
             groupEl.className = 'label-group';
 
-            const header = document.createElement('button');
-            header.type = 'button';
+            const header = document.createElement('div');
             header.className = 'label-group-header';
-            header.addEventListener('click', () => {
+            header.dataset.itemKey = groupItemKey;
+            const mainButton = document.createElement('button');
+            mainButton.type = 'button';
+            mainButton.className = 'label-item-main';
+            mainButton.addEventListener('click', () => {
+                focusedLabelItemKey = groupItemKey;
                 if (collapsedLabelGroups.has(year)) collapsedLabelGroups.delete(year); else collapsedLabelGroups.add(year);
                 renderPositionLabelsList(getCurrentPosKey());
             });
@@ -691,10 +901,22 @@
             const title = document.createElement('span');
             title.className = 'label-title';
             title.textContent = year;
+            mainButton.append(toggle, title);
+
+            const actions = document.createElement('div');
+            actions.className = 'label-item-actions';
             const count = document.createElement('span');
             count.className = 'label-count';
             count.textContent = `${group.count}件`;
-            header.append(toggle, title, count);
+            actions.appendChild(count);
+            if (showEditButtons) actions.appendChild(createLabelActionButton('✎', '名前を編集', () => renameFirstLevelLabel(year)));
+            actions.appendChild(createLabelActionButton('−', '削除', () => confirmDeleteFirstLevelLabel(year)));
+            header.append(mainButton, actions);
+            if (focusedLabelItemKey === groupItemKey) header.classList.add('label-item-focused');
+            header.addEventListener('click', () => {
+                focusedLabelItemKey = groupItemKey;
+                focusPositionLabelsTree(groupItemKey);
+            });
             groupEl.appendChild(header);
 
             if (yearExpanded) {
@@ -705,13 +927,19 @@
                     const subgroupData = group.children[eventName];
                     const sgKey = subgroupKey(year, eventName);
                     const subgroupExpanded = forceExpand || !collapsedLabelSubgroups.has(sgKey);
+                    const subgroupItemKey = makeTreeItemKey('subgroup', year, eventName);
+                    visiblePositionLabelItems.push({ key: subgroupItemKey, type: 'subgroup', k1: year, k2: eventName, expanded: subgroupExpanded, parentKey: groupItemKey });
                     const subgroupEl = document.createElement('div');
                     subgroupEl.className = 'label-subgroup';
 
-                    const subHeader = document.createElement('button');
-                    subHeader.type = 'button';
+                    const subHeader = document.createElement('div');
                     subHeader.className = 'label-subgroup-header';
-                    subHeader.addEventListener('click', () => {
+                    subHeader.dataset.itemKey = subgroupItemKey;
+                    const subMainButton = document.createElement('button');
+                    subMainButton.type = 'button';
+                    subMainButton.className = 'label-item-main';
+                    subMainButton.addEventListener('click', () => {
+                        focusedLabelItemKey = subgroupItemKey;
                         if (collapsedLabelSubgroups.has(sgKey)) collapsedLabelSubgroups.delete(sgKey); else collapsedLabelSubgroups.add(sgKey);
                         renderPositionLabelsList(getCurrentPosKey());
                     });
@@ -722,10 +950,22 @@
                     const subTitle = document.createElement('span');
                     subTitle.className = 'label-title';
                     subTitle.textContent = eventName;
+                    subMainButton.append(subToggle, subTitle);
+
+                    const subActions = document.createElement('div');
+                    subActions.className = 'label-item-actions';
                     const subCount = document.createElement('span');
                     subCount.className = 'label-count';
                     subCount.textContent = `${subgroupData.count}件`;
-                    subHeader.append(subToggle, subTitle, subCount);
+                    subActions.appendChild(subCount);
+                    if (showEditButtons) subActions.appendChild(createLabelActionButton('✎', '名前を編集', () => renameSecondLevelLabel(year, eventName)));
+                    subActions.appendChild(createLabelActionButton('−', '削除', () => confirmDeleteSecondLevelLabel(year, eventName)));
+                    subHeader.append(subMainButton, subActions);
+                    if (focusedLabelItemKey === subgroupItemKey) subHeader.classList.add('label-item-focused');
+                    subHeader.addEventListener('click', () => {
+                        focusedLabelItemKey = subgroupItemKey;
+                        focusPositionLabelsTree(subgroupItemKey);
+                    });
                     subgroupEl.appendChild(subHeader);
 
                     if (subgroupExpanded) {
@@ -733,14 +973,22 @@
                         leafTree.className = 'label-subtree';
                         subgroupData.leaves.sort((a, b) => naturalCollator.compare(a.entry.k3, b.entry.k3));
                         for (const { posKey, entry } of subgroupData.leaves) {
+                            const leafItemKey = makeTreeItemKey('leaf', '', '', posKey);
+                            visiblePositionLabelItems.push({ key: leafItemKey, type: 'leaf', posKey, parentKey: subgroupItemKey });
                             const leaf = document.createElement('div');
                             leaf.className = 'label-leaf';
                             const row = document.createElement('div');
                             row.className = 'label-leaf-row';
+                            row.dataset.itemKey = leafItemKey;
                             row.dataset.posKey = posKey;
-                            row.addEventListener('click', () => jumpToPositionLabel(posKey));
+                            row.addEventListener('click', () => {
+                                focusedLabelItemKey = leafItemKey;
+                                focusPositionLabelsTree(leafItemKey);
+                                jumpToPositionLabel(posKey);
+                            });
                             if (posKey === currentPosKey) row.classList.add('current');
                             if (posKey === highlightedLabelPosKey) row.classList.add('highlight');
+                            if (focusedLabelItemKey === leafItemKey) row.classList.add('label-item-focused');
 
                             const main = document.createElement('div');
                             main.className = 'label-leaf-main';
@@ -750,18 +998,12 @@
                             name.textContent = entry.k3;
                             main.appendChild(name);
 
-                            const delBtn = document.createElement('button');
-                            delBtn.type = 'button';
-                            delBtn.className = 'label-leaf-delete';
-                            delBtn.textContent = '−';
-                            delBtn.title = '削除';
-                            delBtn.setAttribute('aria-label', '削除');
-                            delBtn.addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                confirmDeletePositionLabel(posKey);
-                            });
+                            const actions = document.createElement('div');
+                            actions.className = 'label-item-actions';
+                            if (showEditButtons) actions.appendChild(createLabelActionButton('✎', '名前を編集', () => renameThirdLevelLabel(posKey)));
+                            actions.appendChild(createLabelActionButton('−', '削除', () => confirmDeletePositionLabel(posKey)));
 
-                            row.append(main, delBtn);
+                            row.append(main, actions);
                             leaf.appendChild(row);
                             leafTree.appendChild(leaf);
                         }
@@ -773,16 +1015,21 @@
             }
             positionLabelsTree.appendChild(groupEl);
         }
+
+        ensureFocusedLabelItem(currentPosKey);
+        const focusedEl = positionLabelsTree.querySelector(`[data-item-key="${CSS.escape(focusedLabelItemKey || '')}"]`);
+        if (focusedEl) focusedEl.classList.add('label-item-focused');
     }
 
     function confirmDeletePositionLabel(posKey) {
         const entry = positionLabels.byPosKey[posKey];
-        if (!entry) return;
+        if (!entry) return false;
         const nameKey = buildLabelName(entry.k1, entry.k2, entry.k3);
-        if (!confirm(`ラベル「${nameKey}」を削除します。よろしいですか？`)) return;
+        if (!confirm(`ラベル「${nameKey}」を削除します。よろしいですか？`)) return false;
         deletePositionLabel(posKey);
         updateUI();
         showToast('ラベルを削除しました');
+        return true;
     }
 
     function deletePositionLabel(posKey) {
@@ -833,7 +1080,143 @@
         updatePreferredPathToNode(targetNodeId);
         currentNodeId = targetNodeId;
         highlightedLabelPosKey = posKey;
+        focusedLabelItemKey = makeTreeItemKey('leaf', '', '', posKey);
         requestAnimationFrame(() => updateUI());
+    }
+
+    function getFocusedLabelItem() {
+        return visiblePositionLabelItems.find((item) => item.key === focusedLabelItemKey) || null;
+    }
+
+    function moveFocusedLabelItem(step) {
+        if (!visiblePositionLabelItems.length) return;
+        const index = focusedLabelItemKey ? getVisibleLabelItemIndex(focusedLabelItemKey) : -1;
+        const nextIndex = Math.max(0, Math.min(visiblePositionLabelItems.length - 1, index + step));
+        focusedLabelItemKey = visiblePositionLabelItems[nextIndex].key;
+        renderPositionLabelsList(getCurrentPosKey());
+        scrollFocusedLabelItemIntoView();
+    }
+
+    function toggleGroupExpanded(k1, expanded) {
+        if (expanded) collapsedLabelGroups.add(k1); else collapsedLabelGroups.delete(k1);
+        renderPositionLabelsList(getCurrentPosKey());
+        scrollFocusedLabelItemIntoView();
+    }
+
+    function toggleSubgroupExpanded(k1, k2, expanded) {
+        const key = subgroupKey(k1, k2);
+        if (expanded) collapsedLabelSubgroups.add(key); else collapsedLabelSubgroups.delete(key);
+        renderPositionLabelsList(getCurrentPosKey());
+        scrollFocusedLabelItemIntoView();
+    }
+
+    function findFirstChildItemKey(parentKey) {
+        const parentIndex = getVisibleLabelItemIndex(parentKey);
+        if (parentIndex === -1) return null;
+        const parent = visiblePositionLabelItems[parentIndex];
+        for (let index = parentIndex + 1; index < visiblePositionLabelItems.length; index++) {
+            const item = visiblePositionLabelItems[index];
+            if (item.parentKey === parentKey) return item.key;
+            if (parent.type === 'group' && item.type === 'group') break;
+            if (parent.type === 'subgroup' && (item.type === 'group' || item.type === 'subgroup')) break;
+        }
+        return null;
+    }
+
+    function focusFallbackAfterDelete() {
+        if (!visiblePositionLabelItems.length) return null;
+        const index = getVisibleLabelItemIndex(focusedLabelItemKey);
+        if (index === -1) return visiblePositionLabelItems[0].key;
+        if (visiblePositionLabelItems[index + 1]) return visiblePositionLabelItems[index + 1].key;
+        if (visiblePositionLabelItems[index - 1]) return visiblePositionLabelItems[index - 1].key;
+        return null;
+    }
+
+    function handlePositionLabelsTreeKeydown(event) {
+        if (document.activeElement !== positionLabelsTree) return;
+        const item = getFocusedLabelItem();
+        if (!item) return;
+
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            event.stopPropagation();
+            moveFocusedLabelItem(1);
+            return;
+        }
+        if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            event.stopPropagation();
+            moveFocusedLabelItem(-1);
+            return;
+        }
+        if (event.key === 'ArrowLeft') {
+            event.preventDefault();
+            event.stopPropagation();
+            if (item.type === 'group' && item.expanded) {
+                toggleGroupExpanded(item.k1, true);
+            } else if (item.type === 'subgroup') {
+                if (item.expanded) {
+                    toggleSubgroupExpanded(item.k1, item.k2, true);
+                } else if (item.parentKey) {
+                    focusedLabelItemKey = item.parentKey;
+                    renderPositionLabelsList(getCurrentPosKey());
+                    scrollFocusedLabelItemIntoView();
+                }
+            } else if (item.type === 'leaf' && item.parentKey) {
+                focusedLabelItemKey = item.parentKey;
+                renderPositionLabelsList(getCurrentPosKey());
+                scrollFocusedLabelItemIntoView();
+            }
+            return;
+        }
+        if (event.key === 'ArrowRight') {
+            event.preventDefault();
+            event.stopPropagation();
+            if (item.type === 'group') {
+                if (!item.expanded) {
+                    toggleGroupExpanded(item.k1, false);
+                } else {
+                    const childKey = findFirstChildItemKey(item.key);
+                    if (childKey) {
+                        focusedLabelItemKey = childKey;
+                        renderPositionLabelsList(getCurrentPosKey());
+                        scrollFocusedLabelItemIntoView();
+                    }
+                }
+            } else if (item.type === 'subgroup') {
+                if (!item.expanded) {
+                    toggleSubgroupExpanded(item.k1, item.k2, false);
+                } else {
+                    const childKey = findFirstChildItemKey(item.key);
+                    if (childKey) {
+                        focusedLabelItemKey = childKey;
+                        renderPositionLabelsList(getCurrentPosKey());
+                        scrollFocusedLabelItemIntoView();
+                    }
+                }
+            }
+            return;
+        }
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            event.stopPropagation();
+            if (item.type === 'leaf' && item.posKey) jumpToPositionLabel(item.posKey);
+            return;
+        }
+        if (event.key === 'Delete') {
+            event.preventDefault();
+            event.stopPropagation();
+            const fallbackKey = focusFallbackAfterDelete();
+            let deleted = false;
+            if (item.type === 'group') {
+                deleted = confirmDeleteFirstLevelLabel(item.k1);
+            } else if (item.type === 'subgroup') {
+                deleted = confirmDeleteSecondLevelLabel(item.k1, item.k2);
+            } else if (item.type === 'leaf' && item.posKey) {
+                deleted = confirmDeletePositionLabel(item.posKey);
+            }
+            if (deleted && fallbackKey) focusPositionLabelsTree(fallbackKey);
+        }
     }
 
     function drawBoard() {
@@ -961,6 +1344,7 @@
         commentArea.placeholder = isTouchMain() ? '' : '...';
         updateTouchMainLayout();
         updateViewMenuButtons();
+        if (tree.r) renderPositionLabelsList(getCurrentPosKey());
     }
 
     updateCommentEditable();
@@ -1058,6 +1442,14 @@
     positionLabelErrorAction.addEventListener('click', () => {
         if (labelErrorActionHandler) labelErrorActionHandler();
     });
+    positionLabelsTree.addEventListener('focus', () => {
+        if (!focusedLabelItemKey && visiblePositionLabelItems.length) {
+            focusedLabelItemKey = visiblePositionLabelItems[0].key;
+        }
+        renderPositionLabelsList(getCurrentPosKey());
+        requestAnimationFrame(scrollFocusedLabelItemIntoView);
+    });
+    positionLabelsTree.addEventListener('keydown', handlePositionLabelsTreeKeydown);
     function toggleHints() {
         showHints = !showHints;
         commentArea.classList.toggle('hidden-hint', !showHints);
@@ -1156,15 +1548,18 @@
             else if (key === 'f') { e.preventDefault(); toggleHints(); }
             return;
         }
+        if (document.activeElement === positionLabelsTree) {
+            return;
+        }
         switch (e.key) {
             case 'h': e.preventDefault(); goToPrevBranch(); break;
             case 'j': e.preventDefault(); goBack(); break;
             case 'k': e.preventDefault(); goNext(); break;
             case 'l': e.preventDefault(); goToNextBranch(); break;
-            case 'ArrowLeft': goBack(); break;
-            case 'ArrowRight': goNext(); break;
-            case 'ArrowUp': goToPrevBranch(); break;
-            case 'ArrowDown': goToNextBranch(); break;
+            case 'ArrowLeft': e.preventDefault(); goBack(); break;
+            case 'ArrowRight': e.preventDefault(); goNext(); break;
+            case 'ArrowUp': e.preventDefault(); goToPrevBranch(); break;
+            case 'ArrowDown': e.preventDefault(); goToNextBranch(); break;
             case 'Delete': deleteCurrentNode(); break;
         }
     });
