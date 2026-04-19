@@ -102,13 +102,16 @@
         .position-labels-panel { gap: 10px; min-height: 0; }
         .label-register-panel, .label-list-panel { box-sizing: border-box; }
         .label-register-panel { padding: 0; display: flex; flex-direction: column; gap: 8px; }
-        .label-list-panel { flex: 1 1 0; min-height: 0; padding: 0 0 46px; display: flex; flex-direction: column; gap: 8px; touch-action: pan-y; }
-        .label-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(72px, 0.55fr) auto; gap: 8px; align-items: center; }
+        .label-list-panel { flex: 1 1 0; min-height: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; touch-action: pan-y; }
+        .label-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(72px, 0.55fr) auto; gap: 8px; align-items: stretch; }
         .label-field input {
-            width: 100%; box-sizing: border-box; padding: 9px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;
+            width: 100%; min-height: 38px; box-sizing: border-box; padding: 9px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;
         }
         .label-form-actions { display: contents; }
-        .label-form-btn.primary { background: #eef4ff; border-color: #bfd2fb; color: #24488f; padding: 9px 14px; }
+        .label-form-btn.primary {
+            min-height: 38px; height: 100%; box-sizing: border-box; background: #eef4ff; border-color: #bfd2fb;
+            color: #24488f; padding: 0 14px; align-self: stretch;
+        }
         .label-leaf-delete { background: #fff; }
         .label-error {
             display: none; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -118,8 +121,8 @@
         .label-error button { padding: 7px 10px; font-size: 12px; }
         .label-tree {
             flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;
-            touch-action: pan-y; -webkit-overflow-scrolling: touch; border: 1px solid #e4e7ec; border-radius: 10px;
-            background: linear-gradient(180deg, #fcfdff 0%, #f8fafc 100%); padding: 8px;
+            touch-action: pan-y; -webkit-overflow-scrolling: touch; border: 0; border-radius: 4px;
+            background: transparent; padding: 0;
             transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
         }
         .label-empty { color: #666; font-size: 13px; padding: 8px 4px; }
@@ -143,13 +146,13 @@
         }
         .label-tree:focus {
             outline: none; border-color: #98b8f5;
-            box-shadow: 0 0 0 3px rgba(126, 177, 255, 0.2), 0 6px 18px rgba(36, 72, 143, 0.08);
-            background: linear-gradient(180deg, #fafdff 0%, #f2f7ff 100%);
+            box-shadow: inset 0 0 0 2px rgba(126, 177, 255, 0.45);
+            background: transparent;
         }
         .label-tree:focus-visible {
             outline: none; border-color: #98b8f5;
-            box-shadow: 0 0 0 3px rgba(126, 177, 255, 0.2), 0 6px 18px rgba(36, 72, 143, 0.08);
-            background: linear-gradient(180deg, #fafdff 0%, #f2f7ff 100%);
+            box-shadow: inset 0 0 0 2px rgba(126, 177, 255, 0.45);
+            background: transparent;
         }
         .label-item-focused {
             border-radius: 6px; background: #eef4ff;
@@ -190,11 +193,18 @@
             padding-bottom: 0;
         }
         body.bottom-controls-layout .label-tree {
-            padding-bottom: calc(138px + env(safe-area-inset-bottom, 0px));
+            padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
             box-sizing: border-box;
         }
         body.touch-main .position-labels-panel { gap: 0; }
         body.touch-main .label-list-panel { padding-top: 0; }
+        body.touch-main .label-tree,
+        body.touch-main .label-tree:focus,
+        body.touch-main .label-tree:focus-visible {
+            border: 0;
+            box-shadow: none;
+            background: transparent;
+        }
         @media (max-width: 599px) {
             .board-controls { grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 6px; }
             .ctrl-left, .ctrl-right { gap: 0; }
