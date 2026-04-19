@@ -27,10 +27,10 @@
             cursor: pointer; touch-action: none; border-radius: 4px; outline: none;
         }
         #boardCanvas:focus, #boardCanvas:focus-visible { outline: none; }
-        .board-controls { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; width: 100%; box-sizing: border-box; max-width: 620px; margin: 0 auto; align-items: center; }
+        .board-controls { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; width: 100%; box-sizing: border-box; max-width: 620px; margin: 0 auto; align-items: center; }
         .ctrl-left, .ctrl-center, .ctrl-right { display: flex; align-items: center; }
         .ctrl-left, .ctrl-right { gap: 6px; }
-        .ctrl-center { gap: 8px; justify-content: center; }
+        .ctrl-center { gap: 8px; justify-content: center; min-width: 0; }
         .control-menu { position: relative; }
         .board-controls button, .label-leaf-delete, .label-form-btn {
             padding: 12px 14px; border: 1px solid #ccc; background: #f9f9f9;
@@ -142,6 +142,7 @@
             width: min(620px, calc(100vw - 16px)); margin: 0; padding: 8px; border-radius: 16px;
             background: rgba(255, 255, 255, 0.96); box-shadow: 0 10px 28px rgba(16, 24, 40, 0.18); z-index: 30;
         }
+        body.bottom-controls-layout.control-menu-open .board-controls { z-index: 40; }
         body.bottom-controls-layout .side-tabs {
             bottom: calc(84px + env(safe-area-inset-bottom, 0px));
             z-index: 31;
@@ -149,10 +150,13 @@
         body.touch-main .position-labels-panel { gap: 0; }
         body.touch-main .label-list-panel { padding-top: 0; }
         @media (max-width: 599px) {
-            .board-controls { grid-template-columns: auto 1fr auto; gap: 10px; }
-            .menu-icon-btn { width: 50px; height: 46px; }
-            .nav-btn.branch { width: 4.2em; }
-            .nav-btn.step { width: 5.2em; }
+            .board-controls { grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 6px; }
+            .ctrl-left, .ctrl-right { gap: 0; }
+            .ctrl-center { gap: 6px; }
+            .menu-icon-btn { width: 44px; height: 42px; }
+            .control-icon { width: 20px; height: 20px; }
+            .nav-btn.branch { width: 2.6em; }
+            .nav-btn.step { width: 3.1em; }
             .label-form-actions { display: block; }
             .label-grid { grid-template-columns: 1fr; }
             .side-tabs { right: 10px; bottom: 10px; }
@@ -888,6 +892,7 @@
             elements.button.setAttribute('aria-expanded', 'false');
         }
         currentOpenControlMenu = null;
+        document.body.classList.remove('control-menu-open');
     }
 
     function toggleControlMenu(name) {
@@ -900,6 +905,7 @@
         elements.button.classList.add('active');
         elements.button.setAttribute('aria-expanded', 'true');
         currentOpenControlMenu = name;
+        document.body.classList.add('control-menu-open');
     }
 
     function updateViewMenuButtons() {
