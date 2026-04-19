@@ -79,6 +79,12 @@
         textarea {
             width: 100%; flex-grow: 1; min-height: 150px; resize: none; overflow-y: auto; touch-action: pan-y; padding: 10px; font-size: 16px;
             border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; outline: none; background-color: #fff; color: #333;
+            transition: border-color 0.16s ease, box-shadow 0.16s ease;
+        }
+        body:not(.touch-main) textarea:focus,
+        body:not(.touch-main) textarea:focus-visible {
+            border-color: #7ab8f5;
+            box-shadow: inset 0 0 0 2px rgba(100,170,240,0.35);
         }
         .hidden-hint { color: transparent !important; caret-color: transparent !important; }
         .hidden-hint::placeholder { color: transparent !important; }
@@ -238,7 +244,7 @@
             .left-pane { width: 620px; flex: 0 0 auto; }
             .right-pane { width: 416px; flex: 0 0 auto; }
             textarea { min-height: 300px; line-height: 1.45; }
-            textarea:focus, .label-field input:focus {
+            .label-field input:focus {
                 border-color: #7ab8f5; box-shadow: 0 0 0 3px rgba(100,170,240,0.25);
             }
         }
@@ -1246,8 +1252,10 @@
         bgCtx.clearRect(0, 0, LOGICAL_W, LOGICAL_H);
         bgCtx.beginPath(); bgCtx.strokeStyle = '#000'; bgCtx.lineWidth = 1;
         for (let i = 0; i < BOARD_SIZE; i++) {
-            bgCtx.moveTo(MARGIN_L + i * CELL_SIZE, MARGIN_T); bgCtx.lineTo(MARGIN_L + i * CELL_SIZE, MARGIN_T + (BOARD_SIZE-1)*CELL_SIZE);
-            bgCtx.moveTo(MARGIN_L, MARGIN_T + i * CELL_SIZE); bgCtx.lineTo(MARGIN_L + (BOARD_SIZE-1)*CELL_SIZE, MARGIN_T + i * CELL_SIZE);
+            bgCtx.moveTo(MARGIN_L + i * CELL_SIZE, MARGIN_T);
+            bgCtx.lineTo(MARGIN_L + i * CELL_SIZE, MARGIN_T + (BOARD_SIZE - 1) * CELL_SIZE);
+            bgCtx.moveTo(MARGIN_L, MARGIN_T + i * CELL_SIZE);
+            bgCtx.lineTo(MARGIN_L + (BOARD_SIZE - 1) * CELL_SIZE, MARGIN_T + i * CELL_SIZE);
         }
         bgCtx.stroke();
         const stars = [[3,3], [11,3], [7,7], [3,11], [11,11]];
