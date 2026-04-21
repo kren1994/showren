@@ -1292,9 +1292,15 @@
             ctx.beginPath(); ctx.arc(sx, sy, CELL_SIZE * 0.45, 0, Math.PI * 2);
             ctx.fillStyle = node.o === 1 ? '#000' : '#fff'; ctx.fill();
             ctx.lineWidth = 1; ctx.strokeStyle = '#333'; ctx.stroke();
-            ctx.fillStyle = node.o === 1 ? '#fff' : '#000';
-            ctx.font = `bold ${Math.floor(CELL_SIZE*0.35)}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText(node.m.toString(), sx, sy);
+            const moveText = node.m.toString();
+            const moveTextY = sy + Math.max(1, Math.round(CELL_SIZE * 0.03));
+            ctx.fillStyle = node.o === 1 ? '#eee' : '#333';
+            ctx.font = `700 ${Math.max(16, Math.floor(CELL_SIZE * 0.45))}px 'Segoe UI', 'Yu Gothic UI', Meiryo, sans-serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = node.o === 1 ? 'rgba(0, 0, 0, 0.55)' : 'rgba(255, 255, 255, 0.9)';
+            ctx.strokeText(moveText, sx, moveTextY);
+            ctx.fillText(moveText, sx, moveTextY);
         }
 
         if (showHints) {
