@@ -7,6 +7,8 @@
     <style>
         html {
             -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
         body {
             --bottom-controls-offset: calc(8px + env(safe-area-inset-bottom, 0px));
@@ -15,6 +17,7 @@
             font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
             background-color: #f4f4f9; margin: 0; padding: 10px; overscroll-behavior-y: none;
             display: flex; justify-content: center; touch-action: manipulation;
+            -webkit-user-select: none; user-select: none;
         }
         .container {
             display: flex; gap: 20px; background: #fff; padding: 15px; border-radius: 8px;
@@ -31,8 +34,15 @@
         #boardCanvas {
             position: absolute; inset: 0; width: 100%; height: 100%;
             cursor: pointer; touch-action: none; border-radius: 4px; outline: none;
+            -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
         }
         #boardCanvas:focus, #boardCanvas:focus-visible { outline: none; }
+        canvas, button, svg {
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-user-drag: none;
+        }
         .board-controls { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; width: 100%; box-sizing: border-box; max-width: 620px; margin: 0 auto; align-items: center; }
         .visually-hidden-file-input {
             position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
@@ -88,6 +98,8 @@
             transition: border-color 0.16s ease, box-shadow 0.16s ease;
         }
         input, textarea, [contenteditable="true"], [contenteditable="plaintext-only"] {
+            -webkit-user-select: text;
+            user-select: text;
             -webkit-touch-callout: default;
         }
         body:not(.touch-main) textarea:focus,
@@ -631,6 +643,10 @@
 
     function allowsNativeContextMenu(target) {
         return !!target.closest('input, textarea, [contenteditable="true"], [contenteditable="plaintext-only"]');
+    }
+
+    function shouldBlockSelection(target) {
+        return !allowsNativeContextMenu(target);
     }
 
     function togglePositionLabelsFocus() {
@@ -1772,6 +1788,14 @@
     document.addEventListener('contextmenu', (e) => {
         if (allowsNativeContextMenu(e.target)) return;
         suppressLongPressMenu(e);
+    }, { capture: true });
+    document.addEventListener('selectstart', (e) => {
+        if (!shouldBlockSelection(e.target)) return;
+        e.preventDefault();
+    }, { capture: true });
+    document.addEventListener('dragstart', (e) => {
+        if (!shouldBlockSelection(e.target)) return;
+        e.preventDefault();
     }, { capture: true });
     if (isTouchMain()) {
         document.addEventListener('touchmove', (e) => {
