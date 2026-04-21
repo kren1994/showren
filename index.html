@@ -6,6 +6,9 @@
     <title>連珠 検討用ボード</title>
     <style>
         body {
+            --bottom-controls-offset: calc(8px + env(safe-area-inset-bottom, 0px));
+            --bottom-controls-height: 64px;
+            --bottom-controls-space: calc(var(--bottom-controls-height) + var(--bottom-controls-offset));
             font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
             background-color: #f4f4f9; margin: 0; padding: 10px; overscroll-behavior-y: none;
             display: flex; justify-content: center; touch-action: manipulation;
@@ -184,7 +187,7 @@
         body.touch-main .label-register-panel { display: none; }
         body.touch-main .container { flex-wrap: wrap; }
         body.bottom-controls-layout .board-controls {
-            position: fixed; left: 50%; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+            position: fixed; left: 50%; bottom: var(--bottom-controls-offset); transform: translateX(-50%);
             width: min(620px, calc(100vw - 16px)); margin: 0; padding: 8px; border-radius: 16px;
             background: rgba(255, 255, 255, 0.7); box-shadow: 0 8px 24px rgba(16, 24, 40, 0.08); z-index: 30;
         }
@@ -193,14 +196,17 @@
             bottom: calc(84px + env(safe-area-inset-bottom, 0px));
             z-index: 31;
         }
+        body.bottom-controls-layout .right-pane {
+            padding-bottom: var(--bottom-controls-space);
+        }
         body.bottom-controls-layout .comment-panel textarea {
-            padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+            padding-bottom: 10px;
         }
         body.bottom-controls-layout .label-list-panel {
             padding-bottom: 0;
         }
         body.bottom-controls-layout .label-tree {
-            padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+            padding-bottom: 0;
             box-sizing: border-box;
         }
         body.touch-main .position-labels-panel { gap: 0; }
@@ -213,6 +219,7 @@
             background: transparent;
         }
         @media (max-width: 599px) {
+            body { --bottom-controls-height: 58px; }
             .board-controls { grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 6px; }
             .ctrl-left, .ctrl-right { gap: 0; }
             .ctrl-center { gap: 4px; }
