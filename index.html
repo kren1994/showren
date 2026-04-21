@@ -284,8 +284,9 @@
                         </span>
                     </button>
                     <div id="viewMenu" class="control-menu-popup" hidden>
-                        <button id="toggleSideTabsActionBtn" class="control-menu-item" type="button" onclick="toggleSideTabsFromMenu()">タブ切替ボタン</button>
                         <button id="toggleCoordsActionBtn" class="control-menu-item" type="button" onclick="toggleCoordsFromMenu()">座標</button>
+                        <button id="toggleMoveNumbersActionBtn" class="control-menu-item" type="button" onclick="toggleMoveNumbersFromMenu()">手数</button>
+                        <button id="toggleSideTabsActionBtn" class="control-menu-item" type="button" onclick="toggleSideTabsFromMenu()">タブ切替</button>
                         <button id="toggleHintsActionBtn" class="control-menu-item" type="button" onclick="toggleHintsFromMenu()">コメント</button>
                     </div>
                 </div>
@@ -363,6 +364,7 @@
     const toggleSideTabsActionBtn = document.getElementById('toggleSideTabsActionBtn');
     const toggleHintsActionBtn = document.getElementById('toggleHintsActionBtn');
     const toggleCoordsActionBtn = document.getElementById('toggleCoordsActionBtn');
+    const toggleMoveNumbersActionBtn = document.getElementById('toggleMoveNumbersActionBtn');
     const sideTabs = document.querySelector('.side-tabs');
     const commentTabBtn = document.getElementById('commentTabBtn');
     const positionLabelsTabBtn = document.getElementById('positionLabelsTabBtn');
@@ -384,7 +386,7 @@
 
     let tree = {}, posDb = {}, positionLabels = createEmptyPositionLabels();
     let currentNodeId = 'r', nextNodeId = 1;
-    let showHints = true, showCoords = true, showSideTabs = false, activeSideTab = 'comment';
+    let showHints = true, showCoords = true, showMoveNumbers = true, showSideTabs = false, activeSideTab = 'comment';
     let highlightedLabelPosKey = null;
     let labelErrorActionHandler = null;
     let currentOpenControlMenu = null;
@@ -1292,15 +1294,17 @@
             ctx.beginPath(); ctx.arc(sx, sy, CELL_SIZE * 0.45, 0, Math.PI * 2);
             ctx.fillStyle = node.o === 1 ? '#000' : '#fff'; ctx.fill();
             ctx.lineWidth = 1; ctx.strokeStyle = '#333'; ctx.stroke();
-            const moveText = node.m.toString();
-            const moveTextY = sy + Math.max(1, Math.round(CELL_SIZE * 0.03));
-            ctx.fillStyle = node.o === 1 ? '#eee' : '#333';
-            ctx.font = `700 ${Math.max(16, Math.floor(CELL_SIZE * 0.45))}px 'Segoe UI', 'Yu Gothic UI', Meiryo, sans-serif`;
-            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.lineWidth = 2.5;
-            ctx.strokeStyle = node.o === 1 ? 'rgba(0, 0, 0, 0.55)' : 'rgba(255, 255, 255, 0.9)';
-            ctx.strokeText(moveText, sx, moveTextY);
-            ctx.fillText(moveText, sx, moveTextY);
+            if (showMoveNumbers) {
+                const moveText = node.m.toString();
+                const moveTextY = sy + Math.max(1, Math.round(CELL_SIZE * 0.03));
+                ctx.fillStyle = node.o === 1 ? '#eee' : '#333';
+                ctx.font = `700 ${Math.max(16, Math.floor(CELL_SIZE * 0.45))}px 'Segoe UI', 'Yu Gothic UI', Meiryo, sans-serif`;
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.lineWidth = 2.5;
+                ctx.strokeStyle = node.o === 1 ? 'rgba(0, 0, 0, 0.55)' : 'rgba(255, 255, 255, 0.9)';
+                ctx.strokeText(moveText, sx, moveTextY);
+                ctx.fillText(moveText, sx, moveTextY);
+            }
         }
 
         if (showHints) {
@@ -1368,12 +1372,14 @@
     }
 
     function updateViewMenuButtons() {
-        toggleSideTabsActionBtn.textContent = 'タブ切替ボタン';
-        toggleHintsActionBtn.textContent = 'コメント';
         toggleCoordsActionBtn.textContent = '座標';
-        toggleSideTabsActionBtn.classList.toggle('active', showSideTabs);
+        toggleMoveNumbersActionBtn.textContent = '手数';
+        toggleSideTabsActionBtn.textContent = 'タブ切替';
+        toggleHintsActionBtn.textContent = 'コメント';
         toggleHintsActionBtn.classList.toggle('active', showHints);
         toggleCoordsActionBtn.classList.toggle('active', showCoords);
+        toggleMoveNumbersActionBtn.classList.toggle('active', showMoveNumbers);
+        toggleSideTabsActionBtn.classList.toggle('active', showSideTabs);
     }
 
     function shouldShowBottomControls() {
@@ -1522,6 +1528,12 @@
         updateViewMenuButtons();
     }
 
+    function toggleMoveNumbers() {
+        showMoveNumbers = !showMoveNumbers;
+        updateUI();
+        updateViewMenuButtons();
+    }
+
     function openFileFromMenu() {
         closeControlMenus();
         openFile();
@@ -1540,6 +1552,11 @@
     function toggleCoordsFromMenu() {
         closeControlMenus();
         toggleCoords();
+    }
+
+    function toggleMoveNumbersFromMenu() {
+        closeControlMenus();
+        toggleMoveNumbers();
     }
 
     function toggleSideTabsFromMenu() {
