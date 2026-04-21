@@ -1753,6 +1753,14 @@
             const allowScroll = commentArea.contains(e.target) || positionLabelsPanel.contains(e.target);
             if (!allowScroll) e.preventDefault();
         }, { passive: false });
+        document.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+        for (const eventName of ['gesturestart', 'gesturechange', 'gestureend']) {
+            document.addEventListener(eventName, (e) => {
+                e.preventDefault();
+            }, { passive: false });
+        }
     }
 
     document.addEventListener('click', (e) => {
