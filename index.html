@@ -310,9 +310,10 @@
                     </button>
                     <div id="viewMenu" class="control-menu-popup" hidden>
                         <button id="toggleCoordsActionBtn" class="control-menu-item" type="button" onclick="toggleCoordsFromMenu()">座標</button>
-                        <button id="toggleMoveNumbersActionBtn" class="control-menu-item" type="button" onclick="toggleMoveNumbersFromMenu()">手数</button>
+                        <button id="cycleBoardThemeActionBtn" class="control-menu-item" type="button" onclick="cycleBoardThemeFromMenu()">盤面色</button>
                         <button id="toggleSideTabsActionBtn" class="control-menu-item" type="button" onclick="toggleSideTabsFromMenu()">タブ切替</button>
-                        <button id="toggleHintsActionBtn" class="control-menu-item" type="button" onclick="toggleHintsFromMenu()">コメント</button>
+                        <button id="toggleMoveNumbersActionBtn" class="control-menu-item" type="button" onclick="toggleMoveNumbersFromMenu()">手数</button>
+                        <button id="toggleHintsActionBtn" class="control-menu-item" type="button" onclick="toggleHintsFromMenu()">記号等</button>
                     </div>
                 </div>
             </div>
@@ -321,7 +322,7 @@
     </div>
     <div class="right-pane">
         <div class="guide">
-            ・<b>Delete</b> で 1 手削除 / <b>Ctrl+F</b> でコメント表示切替<br>
+            ・<b>Delete</b> で 1 手削除 / <b>Ctrl+F</b> で記号等表示切替<br>
             ・<b>Ctrl+S</b> で保存 / <b>Ctrl+O</b> で読込<br>
             ・<b>Ctrl+;</b> でコメント入力切替 / <b>Ctrl+Shift+;</b>でタブ切替
         </div>
@@ -386,6 +387,7 @@
     const fileMenu = document.getElementById('fileMenu');
     const viewMenuBtn = document.getElementById('viewMenuBtn');
     const viewMenu = document.getElementById('viewMenu');
+    const cycleBoardThemeActionBtn = document.getElementById('cycleBoardThemeActionBtn');
     const toggleSideTabsActionBtn = document.getElementById('toggleSideTabsActionBtn');
     const toggleHintsActionBtn = document.getElementById('toggleHintsActionBtn');
     const toggleCoordsActionBtn = document.getElementById('toggleCoordsActionBtn');
@@ -412,6 +414,13 @@
     let tree = {}, posDb = {}, positionLabels = createEmptyPositionLabels();
     let currentNodeId = 'r', nextNodeId = 1;
     let showHints = true, showCoords = true, showMoveNumbers = true, showSideTabs = false, activeSideTab = 'comment';
+    const boardThemes = [
+        { label: '茶系', color: '#e3c482' },
+        { label: '緑系', color: '#9fbc8b' },
+        { label: '薄いグレー系', color: '#e7e7e7' },
+        { label: '白', color: '#ffffff' },
+    ];
+    let boardThemeIndex = 0;
     let highlightedLabelPosKey = null;
     let labelErrorActionHandler = null;
     let currentOpenControlMenu = null;
@@ -485,6 +494,7 @@
         bgCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
         canvas.width = LOGICAL_W * dpr; canvas.height = LOGICAL_H * dpr;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        applyBoardTheme();
         drawBoard();
     }
 
@@ -1323,6 +1333,11 @@
         }
     }
 
+    function applyBoardTheme() {
+        bgCanvas.style.backgroundColor = boardThemes[boardThemeIndex].color;
+        updateViewMenuButtons();
+    }
+
     function drawStonesAndHighlights(data, bestI) {
         let path = []; let curr = tree[currentNodeId];
         while (curr && curr.i !== 'r') { path.unshift(curr); curr = tree[curr.p]; }
@@ -1410,13 +1425,15 @@
 
     function updateViewMenuButtons() {
         toggleCoordsActionBtn.textContent = '座標';
-        toggleMoveNumbersActionBtn.textContent = '手数';
+        cycleBoardThemeActionBtn.textContent = `盤面色: ${boardThemes[boardThemeIndex].label}`;
         toggleSideTabsActionBtn.textContent = 'タブ切替';
-        toggleHintsActionBtn.textContent = 'コメント';
+        toggleMoveNumbersActionBtn.textContent = '手数';
+        toggleHintsActionBtn.textContent = '記号等';
         toggleHintsActionBtn.classList.toggle('active', showHints);
         toggleCoordsActionBtn.classList.toggle('active', showCoords);
         toggleMoveNumbersActionBtn.classList.toggle('active', showMoveNumbers);
         toggleSideTabsActionBtn.classList.toggle('active', showSideTabs);
+        cycleBoardThemeActionBtn.classList.remove('active');
     }
 
     function shouldShowBottomControls() {
@@ -1607,6 +1624,16 @@
     function toggleCoordsFromMenu() {
         closeControlMenus();
         toggleCoords();
+    }
+
+    function cycleBoardTheme() {
+        boardThemeIndex = (boardThemeIndex + 1) % boardThemes.length;
+        applyBoardTheme();
+    }
+
+    function cycleBoardThemeFromMenu() {
+        closeControlMenus();
+        cycleBoardTheme();
     }
 
     function toggleMoveNumbersFromMenu() {
