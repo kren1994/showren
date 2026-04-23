@@ -1504,16 +1504,28 @@
 
     commentArea.addEventListener('keydown', (e) => {
         if (document.activeElement !== commentArea) return;
-        if (!e.ctrlKey) return;
+        if (!(e.ctrlKey || e.metaKey)) return;
+
+        const key = e.key.toLowerCase();
+        if (key === 's') {
+            e.preventDefault();
+            saveKifu();
+            return;
+        }
+        if (key === 'o') {
+            e.preventDefault();
+            openFile();
+            return;
+        }
 
         const start = commentArea.selectionStart;
         const end = commentArea.selectionEnd;
         const value = commentArea.value;
 
-        if (e.key === 'j') {
+        if (key === 'j') {
             e.preventDefault();
             insertText('\n');
-        } else if (e.key === 'h') {
+        } else if (key === 'h') {
             e.preventDefault();
             if (start === end && start > 0) {
                 commentArea.value = value.slice(0, start - 1) + value.slice(end);
