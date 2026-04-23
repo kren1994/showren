@@ -86,6 +86,7 @@
         .board-controls .control-menu-item:focus-visible { outline: none; }
         .board-controls .control-menu-item::after { content: ''; width: 1em; flex: 0 0 1em; }
         .board-controls .control-menu-item.active::after { content: '✓'; color: #667085; }
+        .board-controls .control-menu-item.board-theme-item::after { content: attr(data-value); width: auto; flex: 0 0 auto; color: #667085; }
         .nav-btn {
             padding: 0; display: inline-flex; align-items: center; justify-content: center;
             text-align: center; line-height: 1; height: 48px;
@@ -310,8 +311,8 @@
                     </button>
                     <div id="viewMenu" class="control-menu-popup" hidden>
                         <button id="toggleCoordsActionBtn" class="control-menu-item" type="button" onclick="toggleCoordsFromMenu()">座標</button>
-                        <button id="cycleBoardThemeActionBtn" class="control-menu-item" type="button" onclick="cycleBoardThemeFromMenu()">盤面色</button>
-                        <button id="toggleSideTabsActionBtn" class="control-menu-item" type="button" onclick="toggleSideTabsFromMenu()">タブ切替</button>
+                        <button id="cycleBoardThemeActionBtn" class="control-menu-item board-theme-item" type="button" onclick="cycleBoardThemeFromMenu()" data-value="茶系">盤面色</button>
+                        <button id="toggleSideTabsActionBtn" class="control-menu-item" type="button" onclick="toggleSideTabsFromMenu()">タブ</button>
                         <button id="toggleMoveNumbersActionBtn" class="control-menu-item" type="button" onclick="toggleMoveNumbersFromMenu()">手数</button>
                         <button id="toggleHintsActionBtn" class="control-menu-item" type="button" onclick="toggleHintsFromMenu()">記号等</button>
                     </div>
@@ -415,9 +416,9 @@
     let currentNodeId = 'r', nextNodeId = 1;
     let showHints = true, showCoords = true, showMoveNumbers = true, showSideTabs = false, activeSideTab = 'comment';
     const boardThemes = [
-        { label: '茶系', color: '#e3c482' },
-        { label: '緑系', color: '#9fbc8b' },
-        { label: '薄いグレー系', color: '#e7e7e7' },
+        { label: '茶', color: '#e3c482' },
+        { label: '緑', color: '#9fbc8b' },
+        { label: '灰', color: '#e7e7e7' },
         { label: '白', color: '#ffffff' },
     ];
     let boardThemeIndex = 0;
@@ -1425,8 +1426,9 @@
 
     function updateViewMenuButtons() {
         toggleCoordsActionBtn.textContent = '座標';
-        cycleBoardThemeActionBtn.textContent = `盤面色: ${boardThemes[boardThemeIndex].label}`;
-        toggleSideTabsActionBtn.textContent = 'タブ切替';
+        cycleBoardThemeActionBtn.textContent = '盤面色';
+        cycleBoardThemeActionBtn.dataset.value = boardThemes[boardThemeIndex].label;
+        toggleSideTabsActionBtn.textContent = 'タブ';
         toggleMoveNumbersActionBtn.textContent = '手数';
         toggleHintsActionBtn.textContent = '記号等';
         toggleHintsActionBtn.classList.toggle('active', showHints);
