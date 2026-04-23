@@ -1485,7 +1485,13 @@
             }
         }
         let temp = currentNodeId;
-        while (temp !== 'r') { if (tree[temp].x === px && tree[temp].y === py) return; temp = tree[temp].p; }
+        while (temp !== 'r') {
+            if (tree[temp].x === px && tree[temp].y === py) {
+                goNext();
+                return;
+            }
+            temp = tree[temp].p;
+        }
 
         if (!posDb[key]) posDb[key] = { c: '', l: {}, n: {} };
         if (!posDb[key].n) posDb[key].n = {};
