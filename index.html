@@ -510,6 +510,44 @@
         updateUI();
     }
 
+    function getSelectedChildId(node) {
+        if (!node) return null;
+        if (!Array.isArray(node.c)) {
+            node.c = [];
+            node.l = null;
+            return null;
+        }
+        const validChildren = node.c.filter((childId) => tree[childId]);
+        node.c = validChildren;
+        if (validChildren.length === 0) {
+            node.l = null;
+            return null;
+        }
+        if (validChildren.includes(node.l)) return node.l;
+        node.l = validChildren[0];
+        return node.l;
+    }
+
+    function normalizeLoadedTree(rawTree) {
+        const loadedTree = rawTree && typeof rawTree === 'object' ? rawTree : {};
+        if (!loadedTree.r) {
+            loadedTree.r = { i: 'r', p: null, c: [], x: null, y: null, o: 0, m: 0 };
+        }
+        for (const [nodeId, node] of Object.entries(loadedTree)) {
+            if (!node || typeof node !== 'object') continue;
+            node.i = nodeId;
+            node.c = Array.isArray(node.c) ? node.c.filter((childId) => loadedTree[childId]) : [];
+            if (nodeId === 'r') node.p = null;
+            getSelectedChildId(node);
+        }
+        return loadedTree;
+    }
+
+    function sanitizeTreeState() {
+        tree = normalizeLoadedTree(tree);
+        if (!tree[currentNodeId]) currentNodeId = 'r';
+    }
+
     function transform(cx, cy, i) {
         const last = BOARD_SIZE - 1;
         switch(i) {
@@ -1649,11 +1687,11 @@
     }
 
     function goBack() { if (tree[currentNodeId].p) { currentNodeId = tree[currentNodeId].p; updateUI(); } }
-    function goNext() { let node = tree[currentNodeId], target = node.l || (node.c.length > 0 ? node.c[0] : null); if (target) { currentNodeId = target; updateUI(); } }
+    function goNext() { let node = tree[currentNodeId], target = getSelectedChildId(node); if (target) { currentNodeId = target; updateUI(); } }
     function goToPrevBranch() { let curr = tree[currentNodeId]; while (curr.p) { curr = tree[curr.p]; if (curr.c.length > 1 || curr.i === 'r') { currentNodeId = curr.i; updateUI(); return; } } }
     function goToNextBranch() {
-        let curr = tree[currentNodeId], target = curr.l || (curr.c.length > 0 ? curr.c[0] : null);
-        while (target) { curr = tree[target]; if (curr.c.length > 1 || curr.c.length === 0) { currentNodeId = curr.i; updateUI(); return; } target = curr.l || (curr.c.length > 0 ? curr.c[0] : null); }
+        let curr = tree[currentNodeId], target = getSelectedChildId(curr);
+        while (target) { curr = tree[target]; if (curr.c.length > 1 || curr.c.length === 0) { currentNodeId = curr.i; updateUI(); return; } target = getSelectedChildId(curr); }
     }
 
     function deleteCurrentNode() {
@@ -1681,6 +1719,7 @@
 
         const deletedLabelCount = deletePositionLabelsByPosKeys(deletedPosKeys);
         tree[pid].c = tree[pid].c.filter((id) => id !== tid);
+        getSelectedChildId(tree[pid]);
         currentNodeId = pid;
         updateUI();
         if (deletedLabelCount > 0) showToast(`局面ラベルを ${deletedLabelCount} 件削除しました`);
@@ -1757,9 +1796,9 @@
     function loadFromText(text) {
         try {
             const data = JSON.parse(text);
-            tree = data.t;
+            tree = normalizeLoadedTree(data.t);
             posDb = data.p || {};
-            currentNodeId = data.c;
+            currentNodeId = tree[data.c] ? data.c : 'r';
             nextNodeId = data.n;
             positionLabels = normalizePositionLabels(data.pl);
             highlightedLabelPosKey = null;
@@ -1784,6 +1823,7 @@
     }
 
     function buildSaveData() {
+        sanitizeTreeState();
         return { t: tree, p: posDb, c: currentNodeId, n: nextNodeId, pl: positionLabels };
     }
 
