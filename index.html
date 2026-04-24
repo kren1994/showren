@@ -1681,6 +1681,9 @@
 
         const deletedLabelCount = deletePositionLabelsByPosKeys(deletedPosKeys);
         tree[pid].c = tree[pid].c.filter((id) => id !== tid);
+        if (tree[pid].l === tid) {
+            tree[pid].l = tree[pid].c[0] || null;
+        }
         currentNodeId = pid;
         updateUI();
         if (deletedLabelCount > 0) showToast(`局面ラベルを ${deletedLabelCount} 件削除しました`);
