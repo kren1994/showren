@@ -1648,12 +1648,39 @@
         toggleSideTabsVisibility();
     }
 
+    function getPreferredChildId(node) {
+        if (!node) return null;
+        const validChildren = node.c.filter((id) => tree[id]);
+        if (validChildren.length !== node.c.length) {
+            node.c = validChildren;
+        }
+
+        if (!validChildren.length) {
+            if (node.l && !tree[node.l]) node.l = null;
+            return null;
+        }
+
+        if (node.l && tree[node.l] && validChildren.includes(node.l)) {
+            return node.l;
+        }
+
+        node.l = validChildren[0];
+        return node.l;
+    }
+
     function goBack() { if (tree[currentNodeId].p) { currentNodeId = tree[currentNodeId].p; updateUI(); } }
-    function goNext() { let node = tree[currentNodeId], target = node.l || (node.c.length > 0 ? node.c[0] : null); if (target) { currentNodeId = target; updateUI(); } }
+    function goNext() {
+        let node = tree[currentNodeId], target = getPreferredChildId(node);
+        if (target) { currentNodeId = target; updateUI(); }
+    }
     function goToPrevBranch() { let curr = tree[currentNodeId]; while (curr.p) { curr = tree[curr.p]; if (curr.c.length > 1 || curr.i === 'r') { currentNodeId = curr.i; updateUI(); return; } } }
     function goToNextBranch() {
-        let curr = tree[currentNodeId], target = curr.l || (curr.c.length > 0 ? curr.c[0] : null);
-        while (target) { curr = tree[target]; if (curr.c.length > 1 || curr.c.length === 0) { currentNodeId = curr.i; updateUI(); return; } target = curr.l || (curr.c.length > 0 ? curr.c[0] : null); }
+        let curr = tree[currentNodeId], target = getPreferredChildId(curr);
+        while (target) {
+            curr = tree[target];
+            if (curr.c.length > 1 || curr.c.length === 0) { currentNodeId = curr.i; updateUI(); return; }
+            target = getPreferredChildId(curr);
+        }
     }
 
     function deleteCurrentNode() {
