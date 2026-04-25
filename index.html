@@ -81,6 +81,7 @@
             color: #344054; background: transparent; border: none; box-shadow: none; border-radius: 10px; outline: none;
             display: flex; align-items: center; justify-content: space-between; gap: 10px;
         }
+        .board-controls .control-menu-item[hidden] { display: none !important; }
         .board-controls .control-menu-item:hover { background: #f2f5fa; }
         .board-controls .control-menu-item:focus,
         .board-controls .control-menu-item:focus-visible { outline: none; }
@@ -206,6 +207,7 @@
         .label-action-btn[disabled] { visibility: hidden; pointer-events: none; }
         body.touch-main .label-register-panel { display: none; }
         body.touch-main .container { flex-wrap: wrap; }
+        body.touch-main .guide { display: none; }
         body.bottom-controls-layout .board-controls {
             position: fixed; left: 50%; bottom: var(--bottom-controls-offset); transform: translateX(-50%);
             width: min(620px, calc(100vw - 16px)); margin: 0; padding: 8px; border-radius: 16px;
@@ -295,6 +297,7 @@
                         <button id="languageActionBtn" class="control-menu-item language-item" type="button" onclick="cycleLanguageFromMenu()" data-value="日">言語</button>
                         <button id="fileDeleteMoveActionBtn" class="control-menu-item" type="button" onclick="deleteCurrentNodeFromMenu()">一手削除</button>
                         <button id="fileOpenActionBtn" class="control-menu-item" type="button" onclick="openFileFromMenu()">読込</button>
+                        <button id="fileExportActionBtn" class="control-menu-item" type="button" onclick="exportKifuFromMenu()" hidden>書出</button>
                         <button id="fileSaveActionBtn" class="control-menu-item" type="button" onclick="saveKifuWithConfirmFromMenu()">保存</button>
                     </div>
                 </div>
@@ -392,6 +395,7 @@
     const languageActionBtn = document.getElementById('languageActionBtn');
     const fileDeleteMoveActionBtn = document.getElementById('fileDeleteMoveActionBtn');
     const fileOpenActionBtn = document.getElementById('fileOpenActionBtn');
+    const fileExportActionBtn = document.getElementById('fileExportActionBtn');
     const fileSaveActionBtn = document.getElementById('fileSaveActionBtn');
     const viewMenuBtn = document.getElementById('viewMenuBtn');
     const viewMenu = document.getElementById('viewMenu');
@@ -439,6 +443,7 @@
             languageShort: '日',
             deleteMove: '一手削除',
             open: '読込',
+            export: '書出',
             save: '保存',
             coords: '座標',
             boardTheme: '盤面色',
@@ -456,6 +461,10 @@
             commentPlaceholder: '...',
             loadFailed: '読込失敗',
             saveCompleted: '保存しました',
+            exportCompleted: '書き出しました',
+            exportUnavailable: 'この端末では書出しに対応していません',
+            exportFailed: '書出しに失敗しました',
+            localSaveFailed: '保存に失敗しました',
             overwriteConfirm: '上書き保存しますか？',
             jsonFileDescription: 'JSONファイル',
             deleteCurrentNodeConfirm: '現在の手以降の変化を削除します。関連する局面ラベルも削除されます。よろしいですか？',
@@ -469,6 +478,7 @@
             languageShort: '中',
             deleteMove: '删除一手',
             open: '读取',
+            export: '导出',
             save: '保存',
             coords: '坐标',
             boardTheme: '棋盘色',
@@ -486,6 +496,10 @@
             commentPlaceholder: '...',
             loadFailed: '读取失败',
             saveCompleted: '已保存',
+            exportCompleted: '已导出',
+            exportUnavailable: '此设备不支持导出分享',
+            exportFailed: '导出失败',
+            localSaveFailed: '保存失败',
             overwriteConfirm: '要覆盖保存吗？',
             jsonFileDescription: 'JSON 文件',
             deleteCurrentNodeConfirm: '将删除当前手及其后的变化，同时删除相关局面标签。确定吗？',
@@ -499,6 +513,10 @@
     let currentOpenControlMenu = null;
     let focusedLabelItemKey = null;
     let visiblePositionLabelItems = [];
+    const SAVE_DB_NAME = 'showren-local-save';
+    const SAVE_STORE_NAME = 'kifu';
+    const SAVE_RECORD_KEY = 'touch-latest';
+    let saveDbPromise = null;
     const collapsedLabelGroups = new Set();
     const collapsedLabelSubgroups = new Set();
 
@@ -1456,7 +1474,9 @@
     }
 
     function isTouchMain() {
-        return window.matchMedia('(pointer: coarse)').matches;
+        return window.matchMedia('(pointer: coarse)').matches
+            && window.matchMedia('(hover: none)').matches
+            && window.innerWidth <= 1199;
     }
 
     function restoreBoardControlsPosition() {
@@ -1487,6 +1507,15 @@
         return translations[currentLanguage] || translations.ja;
     }
 
+    function updateFileMenuButtons() {
+        const text = getCurrentTranslation();
+        const touchMain = isTouchMain();
+        fileOpenActionBtn.textContent = text.open;
+        fileExportActionBtn.textContent = text.export;
+        fileExportActionBtn.hidden = !touchMain;
+        fileSaveActionBtn.textContent = text.save;
+    }
+
     function applyLanguage() {
         const text = getCurrentTranslation();
         document.documentElement.lang = currentLanguage === 'zh' ? 'zh-CN' : 'ja';
@@ -1496,8 +1525,7 @@
         languageActionBtn.textContent = text.language;
         languageActionBtn.dataset.value = text.languageShort;
         fileDeleteMoveActionBtn.textContent = text.deleteMove;
-        fileOpenActionBtn.textContent = text.open;
-        fileSaveActionBtn.textContent = text.save;
+        updateFileMenuButtons();
         guideText.innerHTML = text.guideHtml;
         commentTabBtn.textContent = text.commentTab;
         positionLabelsTabBtn.textContent = text.labelsTab;
@@ -1557,12 +1585,14 @@
         commentArea.readOnly = isTouchMain() || !showHints;
         commentArea.placeholder = isTouchMain() ? '' : getCurrentTranslation().commentPlaceholder;
         updateTouchMainLayout();
+        updateFileMenuButtons();
         updateViewMenuButtons();
         if (tree.r) renderPositionLabelsList(getCurrentPosKey());
     }
 
     applyLanguage();
     window.matchMedia('(pointer: coarse)').addEventListener('change', updateCommentEditable);
+    window.matchMedia('(hover: none)').addEventListener('change', updateCommentEditable);
     window.addEventListener('resize', () => {
         updateTouchMainLayout();
         closeControlMenus();
@@ -1717,6 +1747,11 @@
         await saveKifuWithConfirm();
     }
 
+    async function exportKifuFromMenu() {
+        closeControlMenus();
+        await exportKifu();
+    }
+
     function deleteCurrentNodeFromMenu() {
         closeControlMenus();
         deleteCurrentNode();
@@ -1869,6 +1904,48 @@
 
     let fileHandle = null;
 
+    function openSaveDatabase() {
+        if (saveDbPromise) return saveDbPromise;
+        saveDbPromise = new Promise((resolve, reject) => {
+            const request = window.indexedDB.open(SAVE_DB_NAME, 1);
+            request.onupgradeneeded = () => {
+                const db = request.result;
+                if (!db.objectStoreNames.contains(SAVE_STORE_NAME)) {
+                    db.createObjectStore(SAVE_STORE_NAME);
+                }
+            };
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error || new Error('IndexedDB open failed'));
+        });
+        return saveDbPromise;
+    }
+
+    async function saveKifuToIndexedDb() {
+        const db = await openSaveDatabase();
+        const payload = {
+            updatedAt: Date.now(),
+            data: buildSaveData(),
+        };
+
+        await new Promise((resolve, reject) => {
+            const tx = db.transaction(SAVE_STORE_NAME, 'readwrite');
+            tx.oncomplete = () => resolve();
+            tx.onabort = () => reject(tx.error || new Error('IndexedDB save aborted'));
+            tx.onerror = () => reject(tx.error || new Error('IndexedDB save failed'));
+            tx.objectStore(SAVE_STORE_NAME).put(payload, SAVE_RECORD_KEY);
+        });
+    }
+
+    async function restoreKifuFromIndexedDb() {
+        const db = await openSaveDatabase();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(SAVE_STORE_NAME, 'readonly');
+            const request = tx.objectStore(SAVE_STORE_NAME).get(SAVE_RECORD_KEY);
+            request.onsuccess = () => resolve(request.result || null);
+            request.onerror = () => reject(request.error || new Error('IndexedDB read failed'));
+        });
+    }
+
     function openFallbackFilePicker() {
         fileInput.value = '';
         if (typeof fileInput.showPicker === 'function') {
@@ -1931,6 +2008,11 @@
         return { t: tree, p: posDb, c: currentNodeId, n: nextNodeId, pl: positionLabels };
     }
 
+    function buildShareFile() {
+        const json = JSON.stringify(buildSaveData());
+        return new File([json], `renju_${Date.now()}.json`, { type: 'application/json' });
+    }
+
     function downloadJson() {
         const json = JSON.stringify(buildSaveData());
         const a = document.createElement('a');
@@ -1940,7 +2022,41 @@
         showToast(getCurrentTranslation().saveCompleted);
     }
 
+    async function exportKifu() {
+        const text = getCurrentTranslation();
+        if (!navigator.share) {
+            showToast(text.exportUnavailable);
+            return;
+        }
+
+        const file = buildShareFile();
+        const shareData = { title: document.title, files: [file] };
+        const fallbackShareData = { title: document.title, text: await file.text() };
+
+        try {
+            if (!navigator.canShare || navigator.canShare(shareData)) {
+                await navigator.share(shareData);
+            } else {
+                await navigator.share(fallbackShareData);
+            }
+            showToast(text.exportCompleted);
+        } catch (e) {
+            if (e && e.name === 'AbortError') return;
+            showToast(text.exportFailed);
+        }
+    }
+
     async function saveKifu() {
+        if (isTouchMain()) {
+            try {
+                await saveKifuToIndexedDb();
+                showToast(getCurrentTranslation().saveCompleted);
+            } catch (e) {
+                showToast(getCurrentTranslation().localSaveFailed);
+            }
+            return;
+        }
+
         const json = JSON.stringify(buildSaveData());
         if (!window.showSaveFilePicker) { downloadJson(); return; }
 
@@ -1961,6 +2077,10 @@
     }
 
     async function saveKifuWithConfirm() {
+        if (isTouchMain()) {
+            await saveKifu();
+            return;
+        }
         if (fileHandle && !await confirm(getCurrentTranslation().overwriteConfirm)) return;
         await saveKifu();
     }
@@ -2042,6 +2162,16 @@
     });
 
     initGame();
+    if (window.indexedDB && isTouchMain()) {
+        restoreKifuFromIndexedDb()
+            .then((saved) => {
+                if (!saved || !saved.data) return;
+                loadFromText(JSON.stringify(saved.data));
+            })
+            .catch(() => {
+                // Ignore restore failures and keep a clean board.
+            });
+    }
 </script>
 </body>
 </html>
