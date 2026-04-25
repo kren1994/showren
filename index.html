@@ -732,6 +732,66 @@
         updateViewMenuButtons();
     }
 
+    function buildAppSettings() {
+        return {
+            language: currentLanguage,
+            boardThemeIndex,
+            showHints,
+            showCoords,
+            showMoveNumbers,
+            showSideTabs,
+            activeSideTab,
+        };
+    }
+
+    function normalizeAppSettings(settings) {
+        if (!settings || typeof settings !== 'object') return null;
+
+        const normalized = {
+            language: settings.language === 'zh' ? 'zh' : 'ja',
+            boardThemeIndex: Number.isInteger(settings.boardThemeIndex) ? settings.boardThemeIndex : 0,
+            showHints: typeof settings.showHints === 'boolean' ? settings.showHints : true,
+            showCoords: typeof settings.showCoords === 'boolean' ? settings.showCoords : true,
+            showMoveNumbers: typeof settings.showMoveNumbers === 'boolean' ? settings.showMoveNumbers : true,
+            showSideTabs: typeof settings.showSideTabs === 'boolean' ? settings.showSideTabs : false,
+            activeSideTab: settings.activeSideTab === 'labels' ? 'labels' : 'comment',
+        };
+        if (boardThemes.length > 0) {
+            normalized.boardThemeIndex = ((normalized.boardThemeIndex % boardThemes.length) + boardThemes.length) % boardThemes.length;
+        }
+        return normalized;
+    }
+
+    function applyAppSettings(settings) {
+        const normalized = normalizeAppSettings(settings);
+        if (!normalized) return;
+
+        currentLanguage = normalized.language;
+        boardThemeIndex = normalized.boardThemeIndex;
+        showHints = normalized.showHints;
+        showCoords = normalized.showCoords;
+        showMoveNumbers = normalized.showMoveNumbers;
+        showSideTabs = normalized.showSideTabs;
+        activeSideTab = normalized.activeSideTab;
+
+        if (showCoords) {
+            CELL_SIZE = 40; MARGIN_L = 35; MARGIN_R = 25; MARGIN_T = 25; MARGIN_B = 35;
+        } else {
+            CELL_SIZE = (620-40)/14; MARGIN_L = MARGIN_R = MARGIN_T = MARGIN_B = 20;
+        }
+        if (window.innerWidth <= 599) {
+            MARGIN_T += 5;
+        }
+
+        commentArea.classList.toggle('hidden-hint', !showHints);
+        applyLanguage();
+        applyBoardTheme();
+        setSideTabsVisible(showSideTabs);
+        setActiveSideTab(activeSideTab);
+        drawBoard();
+        if (tree.r) updateUI();
+    }
+
     function toggleSideTab() {
         setActiveSideTab(activeSideTab === 'comment' ? 'labels' : 'comment');
     }
@@ -1927,6 +1987,7 @@
         const payload = {
             updatedAt: Date.now(),
             data: buildSaveData(),
+            settings: buildAppSettings(),
         };
 
         await new Promise((resolve, reject) => {
@@ -2167,8 +2228,13 @@
     if (window.indexedDB) {
         restoreKifuFromIndexedDb()
             .then((saved) => {
-                if (!saved || !saved.data) return;
-                loadFromText(JSON.stringify(saved.data));
+                if (!saved) return;
+                if (saved.data) {
+                    loadFromText(JSON.stringify(saved.data));
+                }
+                if (saved.settings) {
+                    applyAppSettings(saved.settings);
+                }
             })
             .catch(() => {
                 // Ignore restore failures and keep a clean board.
