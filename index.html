@@ -291,6 +291,7 @@
                         </span>
                     </button>
                     <div id="fileMenu" class="control-menu-popup" hidden>
+                        <button id="fileDeleteMoveActionBtn" class="control-menu-item" type="button" onclick="deleteCurrentNodeFromMenu()">一手削除</button>
                         <button id="fileOpenActionBtn" class="control-menu-item" type="button" onclick="openFileFromMenu()">読込</button>
                         <button id="fileSaveActionBtn" class="control-menu-item" type="button" onclick="saveKifuWithConfirmFromMenu()">保存</button>
                     </div>
@@ -1616,6 +1617,11 @@
     async function saveKifuWithConfirmFromMenu() {
         closeControlMenus();
         await saveKifuWithConfirm();
+    }
+
+    function deleteCurrentNodeFromMenu() {
+        closeControlMenus();
+        deleteCurrentNode();
     }
 
     function toggleHintsFromMenu() {
