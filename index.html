@@ -86,7 +86,8 @@
         .board-controls .control-menu-item:focus-visible { outline: none; }
         .board-controls .control-menu-item::after { content: ''; width: 1em; flex: 0 0 1em; }
         .board-controls .control-menu-item.active::after { content: '✓'; color: #667085; }
-        .board-controls .control-menu-item.board-theme-item::after { content: attr(data-value); width: auto; flex: 0 0 auto; color: #667085; }
+        .board-controls .control-menu-item.board-theme-item::after,
+        .board-controls .control-menu-item.language-item::after { content: attr(data-value); width: auto; flex: 0 0 auto; color: #667085; }
         .nav-btn {
             padding: 0; display: inline-flex; align-items: center; justify-content: center;
             text-align: center; line-height: 1; height: 48px;
@@ -291,6 +292,7 @@
                         </span>
                     </button>
                     <div id="fileMenu" class="control-menu-popup" hidden>
+                        <button id="languageActionBtn" class="control-menu-item language-item" type="button" onclick="cycleLanguageFromMenu()" data-value="日">言語</button>
                         <button id="fileDeleteMoveActionBtn" class="control-menu-item" type="button" onclick="deleteCurrentNodeFromMenu()">一手削除</button>
                         <button id="fileOpenActionBtn" class="control-menu-item" type="button" onclick="openFileFromMenu()">読込</button>
                         <button id="fileSaveActionBtn" class="control-menu-item" type="button" onclick="saveKifuWithConfirmFromMenu()">保存</button>
@@ -323,7 +325,7 @@
         </div>
     </div>
     <div class="right-pane">
-        <div class="guide">
+        <div id="guideText" class="guide">
             ・<b>Delete</b> で 1 手削除 / <b>Ctrl+F</b> で記号等表示切替<br>
             ・<b>Ctrl+S</b> で保存 / <b>Ctrl+O</b> で読込<br>
             ・<b>Ctrl+;</b> でコメント入力切替 / <b>Ctrl+Shift+;</b>でタブ切替
@@ -350,7 +352,7 @@
                         <input id="labelInput3" type="text" autocomplete="off" placeholder="例：1">
                     </div>
                     <div class="label-form-actions">
-                        <button type="button" class="label-form-btn primary" onclick="registerCurrentPositionLabel()">登録</button>
+                        <button id="registerPositionLabelBtn" type="button" class="label-form-btn primary" onclick="registerCurrentPositionLabel()">登録</button>
                     </div>
                 </div>
                 <div id="positionLabelError" class="label-error">
@@ -387,6 +389,10 @@
     const boardControls = document.querySelector('.board-controls');
     const fileMenuBtn = document.getElementById('fileMenuBtn');
     const fileMenu = document.getElementById('fileMenu');
+    const languageActionBtn = document.getElementById('languageActionBtn');
+    const fileDeleteMoveActionBtn = document.getElementById('fileDeleteMoveActionBtn');
+    const fileOpenActionBtn = document.getElementById('fileOpenActionBtn');
+    const fileSaveActionBtn = document.getElementById('fileSaveActionBtn');
     const viewMenuBtn = document.getElementById('viewMenuBtn');
     const viewMenu = document.getElementById('viewMenu');
     const cycleBoardThemeActionBtn = document.getElementById('cycleBoardThemeActionBtn');
@@ -394,6 +400,7 @@
     const toggleHintsActionBtn = document.getElementById('toggleHintsActionBtn');
     const toggleCoordsActionBtn = document.getElementById('toggleCoordsActionBtn');
     const toggleMoveNumbersActionBtn = document.getElementById('toggleMoveNumbersActionBtn');
+    const guideText = document.getElementById('guideText');
     const sideTabs = document.querySelector('.side-tabs');
     const commentTabBtn = document.getElementById('commentTabBtn');
     const positionLabelsTabBtn = document.getElementById('positionLabelsTabBtn');
@@ -409,6 +416,7 @@
     const positionLabelErrorAction = document.getElementById('positionLabelErrorAction');
     const positionLabelsTree = document.getElementById('positionLabelsTree');
     const fileInput = document.getElementById('fileInput');
+    const registerPositionLabelBtn = document.getElementById('registerPositionLabelBtn');
     const labelInputs = [labelInput1, labelInput2, labelInput3];
     const boardControlsAnchor = document.createComment('board-controls-anchor');
     leftPane.insertBefore(boardControlsAnchor, boardControls);
@@ -422,7 +430,70 @@
         { label: '灰', color: '#e7e7e7' },
         { label: '白', color: '#ffffff' },
     ];
+    const translations = {
+        ja: {
+            title: '連珠 検討用ボード',
+            fileMenuAria: 'ファイル操作',
+            viewMenuAria: '表示操作',
+            language: '言語',
+            languageShort: '日',
+            deleteMove: '一手削除',
+            open: '読込',
+            save: '保存',
+            coords: '座標',
+            boardTheme: '盤面色',
+            sideTabs: 'タブ',
+            moveNumbers: '手数',
+            hints: '記号等',
+            guideHtml: '・<b>Delete</b> で 1 手削除 / <b>Ctrl+F</b> で記号等表示切替<br>・<b>Ctrl+S</b> で保存 / <b>Ctrl+O</b> で読込<br>・<b>Ctrl+;</b> でコメント入力切替 / <b>Ctrl+Shift+;</b>でタブ切替',
+            commentTab: 'コメント',
+            labelsTab: '索引',
+            labelInput1Placeholder: '例：2026',
+            labelInput2Placeholder: '例：珠王戦',
+            labelInput3Placeholder: '例：1',
+            registerLabel: '登録',
+            positionLabelsAria: '局面ラベル',
+            commentPlaceholder: '...',
+            loadFailed: '読込失敗',
+            saveCompleted: '保存しました',
+            overwriteConfirm: '上書き保存しますか？',
+            jsonFileDescription: 'JSONファイル',
+            deleteCurrentNodeConfirm: '現在の手以降の変化を削除します。関連する局面ラベルも削除されます。よろしいですか？',
+            deletedLabelsToast: ({ count }) => `局面ラベルを ${count} 件削除しました`,
+        },
+        zh: {
+            title: '连珠 研究棋盘',
+            fileMenuAria: '文件操作',
+            viewMenuAria: '显示操作',
+            language: '语言',
+            languageShort: '中',
+            deleteMove: '删除一手',
+            open: '读取',
+            save: '保存',
+            coords: '坐标',
+            boardTheme: '棋盘色',
+            sideTabs: '标签',
+            moveNumbers: '手数',
+            hints: '符号等',
+            guideHtml: '・按 <b>Delete</b> 删除一手 / 按 <b>Ctrl+F</b> 切换符号显示<br>・按 <b>Ctrl+S</b> 保存 / 按 <b>Ctrl+O</b> 读取<br>・按 <b>Ctrl+;</b> 切换评论输入 / 按 <b>Ctrl+Shift+;</b> 切换标签页',
+            commentTab: '评论',
+            labelsTab: '索引',
+            labelInput1Placeholder: '例：2026',
+            labelInput2Placeholder: '例：珠王战',
+            labelInput3Placeholder: '例：1',
+            registerLabel: '登记',
+            positionLabelsAria: '局面标签',
+            commentPlaceholder: '...',
+            loadFailed: '读取失败',
+            saveCompleted: '已保存',
+            overwriteConfirm: '要覆盖保存吗？',
+            jsonFileDescription: 'JSON 文件',
+            deleteCurrentNodeConfirm: '将删除当前手及其后的变化，同时删除相关局面标签。确定吗？',
+            deletedLabelsToast: ({ count }) => `已删除 ${count} 个局面标签`,
+        },
+    };
     let boardThemeIndex = 0;
+    let currentLanguage = 'ja';
     let highlightedLabelPosKey = null;
     let labelErrorActionHandler = null;
     let currentOpenControlMenu = null;
@@ -1412,6 +1483,32 @@
         document.body.classList.remove('control-menu-open');
     }
 
+    function getCurrentTranslation() {
+        return translations[currentLanguage] || translations.ja;
+    }
+
+    function applyLanguage() {
+        const text = getCurrentTranslation();
+        document.documentElement.lang = currentLanguage === 'zh' ? 'zh-CN' : 'ja';
+        document.title = text.title;
+        fileMenuBtn.setAttribute('aria-label', text.fileMenuAria);
+        viewMenuBtn.setAttribute('aria-label', text.viewMenuAria);
+        languageActionBtn.textContent = text.language;
+        languageActionBtn.dataset.value = text.languageShort;
+        fileDeleteMoveActionBtn.textContent = text.deleteMove;
+        fileOpenActionBtn.textContent = text.open;
+        fileSaveActionBtn.textContent = text.save;
+        guideText.innerHTML = text.guideHtml;
+        commentTabBtn.textContent = text.commentTab;
+        positionLabelsTabBtn.textContent = text.labelsTab;
+        labelInput1.placeholder = text.labelInput1Placeholder;
+        labelInput2.placeholder = text.labelInput2Placeholder;
+        labelInput3.placeholder = text.labelInput3Placeholder;
+        registerPositionLabelBtn.textContent = text.registerLabel;
+        positionLabelsTree.setAttribute('aria-label', text.positionLabelsAria);
+        updateCommentEditable();
+    }
+
     function toggleControlMenu(name) {
         const elements = getControlMenuElements(name);
         if (!elements) return;
@@ -1426,12 +1523,13 @@
     }
 
     function updateViewMenuButtons() {
-        toggleCoordsActionBtn.textContent = '座標';
-        cycleBoardThemeActionBtn.textContent = '盤面色';
+        const text = getCurrentTranslation();
+        toggleCoordsActionBtn.textContent = text.coords;
+        cycleBoardThemeActionBtn.textContent = text.boardTheme;
         cycleBoardThemeActionBtn.dataset.value = boardThemes[boardThemeIndex].label;
-        toggleSideTabsActionBtn.textContent = 'タブ';
-        toggleMoveNumbersActionBtn.textContent = '手数';
-        toggleHintsActionBtn.textContent = '記号等';
+        toggleSideTabsActionBtn.textContent = text.sideTabs;
+        toggleMoveNumbersActionBtn.textContent = text.moveNumbers;
+        toggleHintsActionBtn.textContent = text.hints;
         toggleHintsActionBtn.classList.toggle('active', showHints);
         toggleCoordsActionBtn.classList.toggle('active', showCoords);
         toggleMoveNumbersActionBtn.classList.toggle('active', showMoveNumbers);
@@ -1457,13 +1555,13 @@
     function updateCommentEditable() {
         document.body.classList.toggle('touch-main', isTouchMain());
         commentArea.readOnly = isTouchMain() || !showHints;
-        commentArea.placeholder = isTouchMain() ? '' : '...';
+        commentArea.placeholder = isTouchMain() ? '' : getCurrentTranslation().commentPlaceholder;
         updateTouchMainLayout();
         updateViewMenuButtons();
         if (tree.r) renderPositionLabelsList(getCurrentPosKey());
     }
 
-    updateCommentEditable();
+    applyLanguage();
     window.matchMedia('(pointer: coarse)').addEventListener('change', updateCommentEditable);
     window.addEventListener('resize', () => {
         updateTouchMainLayout();
@@ -1624,6 +1722,16 @@
         deleteCurrentNode();
     }
 
+    function cycleLanguage() {
+        currentLanguage = currentLanguage === 'ja' ? 'zh' : 'ja';
+        applyLanguage();
+    }
+
+    function cycleLanguageFromMenu() {
+        closeControlMenus();
+        cycleLanguage();
+    }
+
     function toggleHintsFromMenu() {
         closeControlMenus();
         toggleHints();
@@ -1691,7 +1799,7 @@
 
     function deleteCurrentNode() {
         if (currentNodeId === 'r') return;
-        if (!confirm('現在の手以降の変化を削除します。関連する局面ラベルも削除されます。よろしいですか？')) return;
+        if (!confirm(getCurrentTranslation().deleteCurrentNodeConfirm)) return;
         const tid = currentNodeId;
         const nodeToRemove = tree[tid];
         const pid = nodeToRemove.p;
@@ -1719,7 +1827,7 @@
         }
         currentNodeId = pid;
         updateUI();
-        if (deletedLabelCount > 0) showToast(`局面ラベルを ${deletedLabelCount} 件削除しました`);
+        if (deletedLabelCount > 0) showToast(getCurrentTranslation().deletedLabelsToast({ count: deletedLabelCount }));
     }
 
     document.addEventListener('keydown', (e) => {
@@ -1783,7 +1891,7 @@
                 const file = await handle.getFile();
                 loadFromText(await file.text());
             } catch (e) {
-                if (e.name !== 'AbortError') alert('読込失敗');
+                if (e.name !== 'AbortError') alert(getCurrentTranslation().loadFailed);
             }
         } else {
             openFallbackFilePicker();
@@ -1803,7 +1911,7 @@
             clearCanonicalCache();
             updateUI();
         } catch (err) {
-            alert('読込失敗');
+            alert(getCurrentTranslation().loadFailed);
         }
     }
 
@@ -1829,7 +1937,7 @@
         a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
         a.download = `renju_${Date.now()}.json`;
         a.click();
-        showToast('保存しました');
+        showToast(getCurrentTranslation().saveCompleted);
     }
 
     async function saveKifu() {
@@ -1840,20 +1948,20 @@
             if (!fileHandle) {
                 fileHandle = await window.showSaveFilePicker({
                     suggestedName: `renju_${Date.now()}.json`,
-                    types: [{ description: 'JSONファイル', accept: { 'application/json': ['.json'] } }]
+                    types: [{ description: getCurrentTranslation().jsonFileDescription, accept: { 'application/json': ['.json'] } }]
                 });
             }
             const writable = await fileHandle.createWritable();
             await writable.write(json);
             await writable.close();
-            showToast('保存しました');
+            showToast(getCurrentTranslation().saveCompleted);
         } catch (e) {
             // キャンセル or エラー → 何もしない
         }
     }
 
     async function saveKifuWithConfirm() {
-        if (fileHandle && !await confirm('上書き保存しますか？')) return;
+        if (fileHandle && !await confirm(getCurrentTranslation().overwriteConfirm)) return;
         await saveKifu();
     }
 
