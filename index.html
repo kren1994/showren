@@ -518,6 +518,7 @@
     const SAVE_DB_NAME = 'showren-local-save';
     const SAVE_STORE_NAME = 'kifu';
     const SAVE_RECORD_KEY = 'touch-latest';
+    const SAVE_LOCAL_STORAGE_KEY = 'showren-local-save-backup';
     let saveDbPromise = null;
     const collapsedLabelGroups = new Set();
     const collapsedLabelSubgroups = new Set();
@@ -742,6 +743,62 @@
             showSideTabs,
             activeSideTab,
         };
+    }
+
+    function buildPersistentSnapshot() {
+        return {
+            updatedAt: Date.now(),
+            data: buildSaveData(),
+            settings: buildAppSettings(),
+        };
+    }
+
+    function saveSnapshotToLocalStorage(snapshot) {
+        try {
+            window.localStorage.setItem(SAVE_LOCAL_STORAGE_KEY, JSON.stringify(snapshot));
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function restoreSnapshotFromLocalStorage() {
+        try {
+            const raw = window.localStorage.getItem(SAVE_LOCAL_STORAGE_KEY);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            return parsed && typeof parsed === 'object' ? parsed : null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    async function persistSnapshot(snapshot, { includeIndexedDb = true } = {}) {
+        const localSaved = saveSnapshotToLocalStorage(snapshot);
+        if (!includeIndexedDb || !window.indexedDB) {
+            if (!localSaved) throw new Error('Local backup save failed');
+            return;
+        }
+
+        const db = await openSaveDatabase();
+        await new Promise((resolve, reject) => {
+            const tx = db.transaction(SAVE_STORE_NAME, 'readwrite');
+            tx.oncomplete = () => resolve();
+            tx.onabort = () => reject(tx.error || new Error('IndexedDB save aborted'));
+            tx.onerror = () => reject(tx.error || new Error('IndexedDB save failed'));
+            tx.objectStore(SAVE_STORE_NAME).put(snapshot, SAVE_RECORD_KEY);
+        });
+    }
+
+    function pickLatestSnapshot(...snapshots) {
+        let latest = null;
+        for (const snapshot of snapshots) {
+            if (!snapshot || typeof snapshot !== 'object') continue;
+            const timestamp = Number.isFinite(snapshot.updatedAt) ? snapshot.updatedAt : 0;
+            const latestTimestamp = latest && Number.isFinite(latest.updatedAt) ? latest.updatedAt : 0;
+            if (!latest || timestamp >= latestTimestamp) latest = snapshot;
+        }
+        return latest;
     }
 
     function normalizeAppSettings(settings) {
@@ -1983,30 +2040,21 @@
     }
 
     async function saveKifuToIndexedDb() {
-        const db = await openSaveDatabase();
-        const payload = {
-            updatedAt: Date.now(),
-            data: buildSaveData(),
-            settings: buildAppSettings(),
-        };
-
-        await new Promise((resolve, reject) => {
-            const tx = db.transaction(SAVE_STORE_NAME, 'readwrite');
-            tx.oncomplete = () => resolve();
-            tx.onabort = () => reject(tx.error || new Error('IndexedDB save aborted'));
-            tx.onerror = () => reject(tx.error || new Error('IndexedDB save failed'));
-            tx.objectStore(SAVE_STORE_NAME).put(payload, SAVE_RECORD_KEY);
-        });
+        await persistSnapshot(buildPersistentSnapshot());
     }
 
     async function restoreKifuFromIndexedDb() {
-        const db = await openSaveDatabase();
-        return new Promise((resolve, reject) => {
-            const tx = db.transaction(SAVE_STORE_NAME, 'readonly');
-            const request = tx.objectStore(SAVE_STORE_NAME).get(SAVE_RECORD_KEY);
-            request.onsuccess = () => resolve(request.result || null);
-            request.onerror = () => reject(request.error || new Error('IndexedDB read failed'));
-        });
+        let indexedDbSnapshot = null;
+        if (window.indexedDB) {
+            const db = await openSaveDatabase();
+            indexedDbSnapshot = await new Promise((resolve, reject) => {
+                const tx = db.transaction(SAVE_STORE_NAME, 'readonly');
+                const request = tx.objectStore(SAVE_STORE_NAME).get(SAVE_RECORD_KEY);
+                request.onsuccess = () => resolve(request.result || null);
+                request.onerror = () => reject(request.error || new Error('IndexedDB read failed'));
+            });
+        }
+        return pickLatestSnapshot(indexedDbSnapshot, restoreSnapshotFromLocalStorage());
     }
 
     function openFallbackFilePicker() {
@@ -2225,21 +2273,19 @@
     });
 
     initGame();
-    if (window.indexedDB) {
-        restoreKifuFromIndexedDb()
-            .then((saved) => {
-                if (!saved) return;
-                if (saved.data) {
-                    loadFromText(JSON.stringify(saved.data));
-                }
-                if (saved.settings) {
-                    applyAppSettings(saved.settings);
-                }
-            })
-            .catch(() => {
-                // Ignore restore failures and keep a clean board.
-            });
-    }
+    restoreKifuFromIndexedDb()
+        .then((saved) => {
+            if (!saved) return;
+            if (saved.data) {
+                loadFromText(JSON.stringify(saved.data));
+            }
+            if (saved.settings) {
+                applyAppSettings(saved.settings);
+            }
+        })
+        .catch(() => {
+            // Ignore restore failures and keep a clean board.
+        });
 </script>
 </body>
 </html>
