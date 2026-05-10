@@ -296,6 +296,7 @@
                     <div id="fileMenu" class="control-menu-popup" hidden>
                         <button id="languageActionBtn" class="control-menu-item language-item" type="button" onclick="cycleLanguageFromMenu()" data-value="日">言語</button>
                         <button id="fileDeleteMoveActionBtn" class="control-menu-item" type="button" onclick="deleteCurrentNodeFromMenu()">一手削除</button>
+                        <button id="fileRenjuPortalActionBtn" class="control-menu-item" type="button" onclick="copyRenjuPortalLinkFromMenu()">RenjuPortal</button>
                         <button id="fileOpenActionBtn" class="control-menu-item" type="button" onclick="openFileFromMenu()">読込</button>
                         <button id="fileExportActionBtn" class="control-menu-item" type="button" onclick="exportKifuFromMenu()" hidden>書出</button>
                         <button id="fileSaveActionBtn" class="control-menu-item" type="button" onclick="saveKifuWithConfirmFromMenu()">保存</button>
@@ -394,6 +395,7 @@
     const fileMenu = document.getElementById('fileMenu');
     const languageActionBtn = document.getElementById('languageActionBtn');
     const fileDeleteMoveActionBtn = document.getElementById('fileDeleteMoveActionBtn');
+    const fileRenjuPortalActionBtn = document.getElementById('fileRenjuPortalActionBtn');
     const fileOpenActionBtn = document.getElementById('fileOpenActionBtn');
     const fileExportActionBtn = document.getElementById('fileExportActionBtn');
     const fileSaveActionBtn = document.getElementById('fileSaveActionBtn');
@@ -442,6 +444,8 @@
             language: '言語',
             languageShort: '日',
             deleteMove: '一手削除',
+            renjuPortal: 'RenjuPortal',
+            renjuPortalCopied: 'RenjuPortal のリンクをコピーしました',
             open: '読込',
             export: '書出',
             save: '保存',
@@ -478,6 +482,8 @@
             language: '语言',
             languageShort: '中',
             deleteMove: '删除一手',
+            renjuPortal: 'RenjuPortal',
+            renjuPortalCopied: '已复制 RenjuPortal 链接',
             open: '读取',
             export: '导出',
             save: '保存',
@@ -1628,6 +1634,7 @@
 
     function updateFileMenuButtons() {
         const text = getCurrentTranslation();
+        fileRenjuPortalActionBtn.textContent = text.renjuPortal;
         fileOpenActionBtn.textContent = text.open;
         fileExportActionBtn.textContent = text.export;
         fileExportActionBtn.hidden = false;
@@ -1868,6 +1875,52 @@
     async function exportKifuFromMenu() {
         closeControlMenus();
         await exportKifu();
+    }
+
+    function getCurrentMovePath() {
+        const path = [];
+        let curr = tree[currentNodeId];
+        while (curr && curr.i !== 'r') {
+            path.unshift(curr);
+            curr = tree[curr.p];
+        }
+        return path;
+    }
+
+    function encodeRenjuPortalMoveValue(value) {
+        if (!Number.isInteger(value) || value < 0 || value >= BOARD_SIZE) return '';
+        return value.toString(15);
+    }
+
+    function buildRenjuPortalLink() {
+        const moves = getCurrentMovePath().map((node) => (
+            encodeRenjuPortalMoveValue(node.x) + encodeRenjuPortalMoveValue(node.y)
+        )).join('');
+        return `https://renjuportal.com/board?v=3&typ=g&mde=e&mvs=${moves}`;
+    }
+
+    async function copyTextToClipboard(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+            return;
+        }
+
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        textarea.style.top = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        textarea.remove();
+    }
+
+    async function copyRenjuPortalLinkFromMenu() {
+        closeControlMenus();
+        await copyTextToClipboard(buildRenjuPortalLink());
+        showToast(getCurrentTranslation().renjuPortalCopied);
     }
 
     function deleteCurrentNodeFromMenu() {
