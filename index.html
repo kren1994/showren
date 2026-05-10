@@ -2008,6 +2008,9 @@
         if (document.activeElement === positionLabelsTree) {
             return;
         }
+        if (labelInputs.includes(document.activeElement)) {
+            return;
+        }
         switch (e.key) {
             case 'h': e.preventDefault(); goToPrevBranch(); break;
             case 'j': e.preventDefault(); goBack(); break;
