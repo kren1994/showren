@@ -294,7 +294,6 @@
                         </span>
                     </button>
                     <div id="fileMenu" class="control-menu-popup" hidden>
-                        <button id="languageActionBtn" class="control-menu-item language-item" type="button" onclick="cycleLanguageFromMenu()" data-value="日">言語</button>
                         <button id="fileDeleteMoveActionBtn" class="control-menu-item" type="button" onclick="deleteCurrentNodeFromMenu()">一手削除</button>
                         <button id="fileRenjuPortalActionBtn" class="control-menu-item" type="button" onclick="copyRenjuPortalLinkFromMenu()">RenjuPortal</button>
                         <button id="fileOpenActionBtn" class="control-menu-item" type="button" onclick="openFileFromMenu()">読込</button>
@@ -317,6 +316,7 @@
                         </span>
                     </button>
                     <div id="viewMenu" class="control-menu-popup" hidden>
+                        <button id="languageActionBtn" class="control-menu-item language-item" type="button" onclick="cycleLanguageFromMenu()" data-value="日">言語</button>
                         <button id="toggleCoordsActionBtn" class="control-menu-item" type="button" onclick="toggleCoordsFromMenu()">座標</button>
                         <button id="cycleBoardThemeActionBtn" class="control-menu-item board-theme-item" type="button" onclick="cycleBoardThemeFromMenu()" data-value="茶系">盤面色</button>
                         <button id="toggleSideTabsActionBtn" class="control-menu-item" type="button" onclick="toggleSideTabsFromMenu()">タブ</button>
@@ -525,6 +525,7 @@
     const SAVE_STORE_NAME = 'kifu';
     const SAVE_RECORD_KEY = 'touch-latest';
     const SAVE_LOCAL_STORAGE_KEY = 'showren-local-save-backup';
+    const SETTINGS_LOCAL_STORAGE_KEY = 'showren-settings';
     let saveDbPromise = null;
     const collapsedLabelGroups = new Set();
     const collapsedLabelSubgroups = new Set();
@@ -737,6 +738,7 @@
         showSideTabs = visible;
         sideTabs.hidden = !visible;
         updateViewMenuButtons();
+        saveAppSettingsToLocalStorage(buildAppSettings());
     }
 
     function buildAppSettings() {
@@ -747,16 +749,34 @@
             showCoords,
             showMoveNumbers,
             showSideTabs,
-            activeSideTab,
         };
     }
 
-    function buildPersistentSnapshot() {
+    function buildBoardSnapshot() {
         return {
             updatedAt: Date.now(),
             data: buildSaveData(),
-            settings: buildAppSettings(),
         };
+    }
+
+    function saveAppSettingsToLocalStorage(settings) {
+        try {
+            window.localStorage.setItem(SETTINGS_LOCAL_STORAGE_KEY, JSON.stringify(settings));
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function restoreAppSettingsFromLocalStorage() {
+        try {
+            const raw = window.localStorage.getItem(SETTINGS_LOCAL_STORAGE_KEY);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            return parsed && typeof parsed === 'object' ? parsed : null;
+        } catch (error) {
+            return null;
+        }
     }
 
     function saveSnapshotToLocalStorage(snapshot) {
@@ -817,7 +837,6 @@
             showCoords: typeof settings.showCoords === 'boolean' ? settings.showCoords : true,
             showMoveNumbers: typeof settings.showMoveNumbers === 'boolean' ? settings.showMoveNumbers : true,
             showSideTabs: typeof settings.showSideTabs === 'boolean' ? settings.showSideTabs : false,
-            activeSideTab: settings.activeSideTab === 'labels' ? 'labels' : 'comment',
         };
         if (boardThemes.length > 0) {
             normalized.boardThemeIndex = ((normalized.boardThemeIndex % boardThemes.length) + boardThemes.length) % boardThemes.length;
@@ -835,7 +854,7 @@
         showCoords = normalized.showCoords;
         showMoveNumbers = normalized.showMoveNumbers;
         showSideTabs = normalized.showSideTabs;
-        activeSideTab = normalized.activeSideTab;
+        activeSideTab = 'comment';
 
         if (showCoords) {
             CELL_SIZE = 40; MARGIN_L = 35; MARGIN_R = 25; MARGIN_T = 25; MARGIN_B = 35;
@@ -1842,6 +1861,7 @@
         commentArea.classList.toggle('hidden-hint', !showHints);
         updateUI();
         updateCommentEditable();
+        saveAppSettingsToLocalStorage(buildAppSettings());
     }
 
     function toggleCoords() {
@@ -1854,12 +1874,14 @@
         drawBoard();
         updateUI();
         updateViewMenuButtons();
+        saveAppSettingsToLocalStorage(buildAppSettings());
     }
 
     function toggleMoveNumbers() {
         showMoveNumbers = !showMoveNumbers;
         updateUI();
         updateViewMenuButtons();
+        saveAppSettingsToLocalStorage(buildAppSettings());
     }
 
     function openFileFromMenu() {
@@ -1931,6 +1953,7 @@
     function cycleLanguage() {
         currentLanguage = currentLanguage === 'ja' ? 'zh' : 'ja';
         applyLanguage();
+        saveAppSettingsToLocalStorage(buildAppSettings());
     }
 
     function cycleLanguageFromMenu() {
@@ -1951,6 +1974,7 @@
     function cycleBoardTheme() {
         boardThemeIndex = (boardThemeIndex + 1) % boardThemes.length;
         applyBoardTheme();
+        saveAppSettingsToLocalStorage(buildAppSettings());
     }
 
     function cycleBoardThemeFromMenu() {
@@ -2096,7 +2120,7 @@
     }
 
     async function saveKifuToIndexedDb() {
-        await persistSnapshot(buildPersistentSnapshot());
+        await persistSnapshot(buildBoardSnapshot());
     }
 
     async function restoreKifuFromIndexedDb() {
@@ -2329,13 +2353,17 @@
     });
 
     initGame();
+    const savedAppSettings = restoreAppSettingsFromLocalStorage();
+    if (savedAppSettings) {
+        applyAppSettings(savedAppSettings);
+    }
     restoreKifuFromIndexedDb()
         .then((saved) => {
             if (!saved) return;
             if (saved.data) {
                 loadFromText(JSON.stringify(saved.data));
             }
-            if (saved.settings) {
+            if (!savedAppSettings && saved.settings) {
                 applyAppSettings(saved.settings);
             }
         })
