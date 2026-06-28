@@ -1807,7 +1807,7 @@
         const key = e.key.toLowerCase();
         if (key === 's') {
             e.preventDefault();
-            saveKifu();
+            if (e.shiftKey) saveKifu(); else exportKifu();
             return;
         }
         if (key === 'o') {
