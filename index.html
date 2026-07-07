@@ -613,7 +613,7 @@
     // the white stone (~#f7f4ee), the gradient span is narrow so stones read the
     // same everywhere, and every theme leans warm.
     const boardThemes = [
-        { label: '茶', grad1: '#e0c185', grad2: '#c29457' },
+        { label: '茶', grad1: '#eaca8b', grad2: '#dcbe79' },
         { label: '緑', grad1: '#b9d2af', grad2: '#94b88c' },
         { label: '紫', grad1: '#cdbcdc', grad2: '#a98bbd' },
         { label: '灰', grad1: '#d9d3c7', grad2: '#b6ad9e' },
@@ -1820,7 +1820,7 @@
         bgCtx.fillStyle = 'rgba(51, 33, 17, 0.82)';
         for (let [x, y] of stars) { bgCtx.beginPath(); bgCtx.arc(MARGIN_L + x * CELL_SIZE, MARGIN_T + y * CELL_SIZE, 3, 0, Math.PI * 2); bgCtx.fill(); }
         if (showCoords) {
-            bgCtx.fillStyle = 'rgba(63, 42, 19, 0.82)'; bgCtx.font = '600 14px Arial'; bgCtx.textAlign = 'center'; bgCtx.textBaseline = 'middle';
+            bgCtx.fillStyle = 'rgba(63, 42, 19, 0.82)'; bgCtx.font = '14px Arial'; bgCtx.textAlign = 'center'; bgCtx.textBaseline = 'middle';
             for (let i = 0; i < BOARD_SIZE; i++) {
                 bgCtx.fillText(String.fromCharCode(65 + i), MARGIN_L + i * CELL_SIZE, LOGICAL_H - 15);
                 bgCtx.fillText((BOARD_SIZE - i).toString(), 15, MARGIN_T + i * CELL_SIZE);
