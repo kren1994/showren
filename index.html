@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#f3efe6" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#1a1613" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#2a241d" media="(prefers-color-scheme: dark)">
     <title>連珠 検討用ボード</title>
     <script>
         // Apply a manually chosen color scheme before first paint (no flash).
@@ -53,22 +53,22 @@
            or when forced dark. */
         @media (prefers-color-scheme: dark) {
             :root:not([data-theme="light"]) {
-                --bg: #1a1613;
-                --bg-accent: #231d16;
-                --bg-glow: rgba(255, 244, 224, 0.05);
-                --panel: rgba(38, 32, 25, 0.92);
-                --panel-strong: #2a231b;
-                --overlay: rgba(34, 28, 22, 0.95);
-                --fill-soft: rgba(233, 218, 191, 0.07);
-                --hairline: rgba(233, 218, 191, 0.12);
-                --line: rgba(233, 218, 191, 0.18);
-                --field-line: rgba(233, 218, 191, 0.16);
+                --bg: #2a241d;
+                --bg-accent: #332c22;
+                --bg-glow: rgba(255, 244, 224, 0.06);
+                --panel: rgba(54, 47, 38, 0.92);
+                --panel-strong: #3a3228;
+                --overlay: rgba(50, 43, 34, 0.96);
+                --fill-soft: rgba(236, 224, 202, 0.08);
+                --hairline: rgba(236, 224, 202, 0.14);
+                --line: rgba(236, 224, 202, 0.2);
+                --field-line: rgba(236, 224, 202, 0.18);
                 --tint-hover: rgba(99, 199, 170, 0.09);
                 --tint-active: rgba(99, 199, 170, 0.16);
                 --focus-ring: rgba(99, 199, 170, 0.5);
                 --text: #ece3d3;
-                --muted: #a3947d;
-                --faint: #8a7c68;
+                --muted: #b0a189;
+                --faint: #94856f;
                 --accent: #46a98c;
                 --accent-strong: #63c7aa;
                 --accent-soft: rgba(99, 199, 170, 0.16);
@@ -77,27 +77,27 @@
                 --shadow-color: rgba(0, 0, 0, 0.5);
                 --stone-black-rim: rgba(233, 218, 191, 0.4);
                 --stone-white-rim: rgba(233, 218, 191, 0.2);
-                --board-dim: brightness(0.93);
+                --board-dim: brightness(0.96);
                 color-scheme: dark;
             }
         }
         :root[data-theme="dark"] {
-            --bg: #1a1613;
-            --bg-accent: #231d16;
-            --bg-glow: rgba(255, 244, 224, 0.05);
-            --panel: rgba(38, 32, 25, 0.92);
-            --panel-strong: #2a231b;
-            --overlay: rgba(34, 28, 22, 0.95);
-            --fill-soft: rgba(233, 218, 191, 0.07);
-            --hairline: rgba(233, 218, 191, 0.12);
-            --line: rgba(233, 218, 191, 0.18);
-            --field-line: rgba(233, 218, 191, 0.16);
+            --bg: #2a241d;
+            --bg-accent: #332c22;
+            --bg-glow: rgba(255, 244, 224, 0.06);
+            --panel: rgba(54, 47, 38, 0.92);
+            --panel-strong: #3a3228;
+            --overlay: rgba(50, 43, 34, 0.96);
+            --fill-soft: rgba(236, 224, 202, 0.08);
+            --hairline: rgba(236, 224, 202, 0.14);
+            --line: rgba(236, 224, 202, 0.2);
+            --field-line: rgba(236, 224, 202, 0.18);
             --tint-hover: rgba(99, 199, 170, 0.09);
             --tint-active: rgba(99, 199, 170, 0.16);
             --focus-ring: rgba(99, 199, 170, 0.5);
             --text: #ece3d3;
-            --muted: #a3947d;
-            --faint: #8a7c68;
+            --muted: #b0a189;
+            --faint: #94856f;
             --accent: #46a98c;
             --accent-strong: #63c7aa;
             --accent-soft: rgba(99, 199, 170, 0.16);
@@ -106,7 +106,7 @@
             --shadow-color: rgba(0, 0, 0, 0.5);
             --stone-black-rim: rgba(233, 218, 191, 0.4);
             --stone-white-rim: rgba(233, 218, 191, 0.2);
-            --board-dim: brightness(0.93);
+            --board-dim: brightness(0.96);
             color-scheme: dark;
         }
         html {
@@ -711,7 +711,7 @@
     let currentLanguage = 'ja';
     let colorSchemePreference = 'auto';
     const COLOR_SCHEME_ORDER = ['auto', 'light', 'dark'];
-    const THEME_META_COLORS = { light: '#f3efe6', dark: '#1a1613' };
+    const THEME_META_COLORS = { light: '#f3efe6', dark: '#2a241d' };
 
     function applyColorScheme() {
         if (colorSchemePreference === 'auto') {
