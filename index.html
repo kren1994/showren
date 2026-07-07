@@ -3,37 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#f3efe6" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1a1613" media="(prefers-color-scheme: dark)">
     <title>連珠 検討用ボード</title>
+    <script>
+        // Apply a manually chosen color scheme before first paint (no flash).
+        try {
+            const s = JSON.parse(localStorage.getItem('showren-settings') || 'null');
+            if (s && (s.colorScheme === 'light' || s.colorScheme === 'dark')) {
+                document.documentElement.dataset.theme = s.colorScheme;
+            }
+        } catch (e) { /* first visit */ }
+    </script>
     <style>
+        :root {
+            /* 紙 (paper) — light. Mirrors playren's design language. */
+            --bg: #f3efe6;
+            --bg-accent: #e8ddc9;
+            --bg-glow: rgba(255, 255, 255, 0.68);
+            --panel: rgba(255, 252, 246, 0.9);
+            --panel-strong: #fffaf1;
+            --overlay: rgba(255, 252, 246, 0.94);
+            --fill-soft: rgba(74, 54, 34, 0.055);
+            --hairline: rgba(74, 54, 34, 0.1);
+            --line: rgba(74, 54, 34, 0.18);
+            --field-line: rgba(74, 54, 34, 0.12);
+            --tint-hover: rgba(23, 89, 74, 0.07);
+            --tint-active: rgba(23, 89, 74, 0.12);
+            --focus-ring: rgba(23, 89, 74, 0.45);
+            --text: #2f2418;
+            --muted: #7b6855;
+            --faint: #a3927c;
+            --accent: #17594a;
+            --accent-strong: #0f4338;
+            --accent-soft: rgba(23, 89, 74, 0.12);
+            --danger: #8b2f28;
+            --danger-soft: rgba(139, 47, 40, 0.08);
+            --shadow-color: rgba(63, 43, 21, 0.2);
+            --stone-black-rim: rgba(47, 36, 24, 0.25);
+            --stone-white-rim: rgba(74, 54, 34, 0.35);
+            --board-grid: rgba(63, 42, 19, 0.9);
+            --board-coord: rgba(63, 42, 19, 0.78);
+            --board-star: rgba(51, 33, 17, 0.82);
+            --board-dim: none;
+            color-scheme: light;
+        }
+        /* 夜の和紙: dark charcoal paper; the wood board stays light and becomes
+           the single bright object. Applied on OS-dark (unless forced light)
+           or when forced dark. */
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --bg: #1a1613;
+                --bg-accent: #231d16;
+                --bg-glow: rgba(255, 244, 224, 0.05);
+                --panel: rgba(38, 32, 25, 0.92);
+                --panel-strong: #2a231b;
+                --overlay: rgba(34, 28, 22, 0.95);
+                --fill-soft: rgba(233, 218, 191, 0.07);
+                --hairline: rgba(233, 218, 191, 0.12);
+                --line: rgba(233, 218, 191, 0.18);
+                --field-line: rgba(233, 218, 191, 0.16);
+                --tint-hover: rgba(99, 199, 170, 0.09);
+                --tint-active: rgba(99, 199, 170, 0.16);
+                --focus-ring: rgba(99, 199, 170, 0.5);
+                --text: #ece3d3;
+                --muted: #a3947d;
+                --faint: #8a7c68;
+                --accent: #46a98c;
+                --accent-strong: #63c7aa;
+                --accent-soft: rgba(99, 199, 170, 0.16);
+                --danger: #e0796a;
+                --danger-soft: rgba(224, 121, 106, 0.12);
+                --shadow-color: rgba(0, 0, 0, 0.5);
+                --stone-black-rim: rgba(233, 218, 191, 0.4);
+                --stone-white-rim: rgba(233, 218, 191, 0.2);
+                --board-dim: brightness(0.93);
+                color-scheme: dark;
+            }
+        }
+        :root[data-theme="dark"] {
+            --bg: #1a1613;
+            --bg-accent: #231d16;
+            --bg-glow: rgba(255, 244, 224, 0.05);
+            --panel: rgba(38, 32, 25, 0.92);
+            --panel-strong: #2a231b;
+            --overlay: rgba(34, 28, 22, 0.95);
+            --fill-soft: rgba(233, 218, 191, 0.07);
+            --hairline: rgba(233, 218, 191, 0.12);
+            --line: rgba(233, 218, 191, 0.18);
+            --field-line: rgba(233, 218, 191, 0.16);
+            --tint-hover: rgba(99, 199, 170, 0.09);
+            --tint-active: rgba(99, 199, 170, 0.16);
+            --focus-ring: rgba(99, 199, 170, 0.5);
+            --text: #ece3d3;
+            --muted: #a3947d;
+            --faint: #8a7c68;
+            --accent: #46a98c;
+            --accent-strong: #63c7aa;
+            --accent-soft: rgba(99, 199, 170, 0.16);
+            --danger: #e0796a;
+            --danger-soft: rgba(224, 121, 106, 0.12);
+            --shadow-color: rgba(0, 0, 0, 0.5);
+            --stone-black-rim: rgba(233, 218, 191, 0.4);
+            --stone-white-rim: rgba(233, 218, 191, 0.2);
+            --board-dim: brightness(0.93);
+            color-scheme: dark;
+        }
         html {
             -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;
+            -webkit-font-smoothing: antialiased;
+            background: var(--bg-accent);
+        }
+        /* Keyboard focus: one consistent accent ring app-wide. */
+        :focus-visible {
+            outline: 2px solid var(--focus-ring);
+            outline-offset: 2px;
         }
         body {
             --bottom-controls-offset: calc(8px + env(safe-area-inset-bottom, 0px));
             --bottom-controls-height: 64px;
             --bottom-controls-space: calc(var(--bottom-controls-height) + var(--bottom-controls-offset));
             font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
-            background-color: #f4f4f9; margin: 0; padding: 10px; overscroll-behavior-y: none;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top, var(--bg-glow), transparent 42%),
+                linear-gradient(180deg, var(--bg) 0%, var(--bg-accent) 100%);
+            background-color: var(--bg-accent);
+            background-attachment: fixed;
+            margin: 0; padding: 12px; overscroll-behavior-y: none;
             display: flex; justify-content: center; touch-action: manipulation;
             -webkit-user-select: none; user-select: none;
         }
+        /* Paper-flat: the page background is the surface. No card, no box —
+           panels only carry layout. */
         .container {
-            display: flex; gap: 20px; background: #fff; padding: 15px; border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1); flex-wrap: wrap; max-width: 100%; box-sizing: border-box;
+            display: flex; gap: 24px; background: transparent; padding: 4px; border-radius: 0;
+            box-shadow: none; flex-wrap: wrap; max-width: 100%; box-sizing: border-box;
         }
-        .left-pane, .right-pane { flex: 1 1 100%; max-width: 650px; display: flex; flex-direction: column; gap: 10px; margin: 0 auto; }
+        .left-pane, .right-pane { flex: 1 1 100%; max-width: 650px; display: flex; flex-direction: column; gap: 12px; margin: 0 auto; }
         .right-pane { position: relative; min-height: 0; }
         .board-container { position: relative; width: 100%; display: flex; justify-content: center; }
         .canvas-stack { position: relative; display: inline-block; }
+        /* The board is the one floating object: a soft drop shadow lifts it off
+           the paper. Dimmed slightly in dark mode via --board-dim. */
         #bgCanvas {
-            background-color: #e3c482; border-radius: 4px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            background-color: transparent; border-radius: 8px;
+            box-shadow: 0 16px 40px var(--shadow-color);
+            filter: var(--board-dim);
             display: block; max-width: 100%; height: auto !important;
         }
         #boardCanvas {
             position: absolute; inset: 0; width: 100%; height: 100%;
-            cursor: pointer; touch-action: none; border-radius: 4px; outline: none;
+            cursor: pointer; touch-action: none; border-radius: 8px; outline: none;
+            filter: var(--board-dim);
             -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
         }
         #boardCanvas:focus, #boardCanvas:focus-visible { outline: none; }
@@ -50,27 +174,47 @@
         }
         .ctrl-left, .ctrl-center, .ctrl-right { display: flex; align-items: center; }
         .ctrl-left, .ctrl-right { gap: 6px; }
-        .ctrl-center { gap: 8px; justify-content: center; min-width: 0; }
+        /* Arrows sit edge-to-edge; hairlines (not gaps) separate them. */
+        .ctrl-center { gap: 0; justify-content: center; min-width: 0; }
         .control-menu { position: relative; }
-        .board-controls button, .label-action-btn, .label-form-btn {
-            padding: 12px 14px; border: 1px solid #ccc; background: #f9f9f9;
-            border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; touch-action: manipulation;
-            white-space: nowrap; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+        /* Hairlines fencing the menus off from the arrow group. */
+        .ctrl-left::after,
+        .ctrl-right::before {
+            content: ""; width: 1px; align-self: stretch; margin: 12px 0;
+            background: var(--hairline);
         }
-        .board-controls button:hover, .label-action-btn:hover, .label-form-btn:hover {
-            background: #e9e9e9;
+        /* Flat buttons: no box, a soft tint on hover/press. */
+        .board-controls button, .label-form-btn {
+            padding: 12px 14px; border: 0; background: transparent;
+            border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: bold; touch-action: manipulation;
+            white-space: nowrap; color: var(--text); user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+            transition: background 0.16s ease, transform 0.16s ease;
         }
+        .board-controls button:hover, .label-form-btn:hover { background: var(--tint-hover); }
+        .board-controls button:active { background: var(--tint-active); transform: scale(0.96); }
         .menu-icon-btn {
-            width: 52px; height: 48px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
-            color: #344054;
+            width: 52px; height: 50px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
+            color: var(--muted);
         }
-        .menu-icon-btn.active { background: #eef4ff; border-color: #bfd2fb; color: #24488f; }
+        /* Menu buttons run right up to their hairline; padding keeps the icon put. */
+        .ctrl-left .menu-icon-btn { width: 56px; justify-content: flex-start; padding-left: 12px; }
+        .ctrl-right .menu-icon-btn { width: 56px; justify-content: flex-end; padding-right: 12px; }
+        .menu-icon-btn:hover { color: var(--text); }
+        .menu-icon-btn.active { background: var(--accent-soft); color: var(--accent-strong); }
         .control-icon { display: inline-flex; width: 22px; height: 22px; }
         .control-icon svg { width: 100%; height: 100%; fill: currentColor; }
         .control-menu-popup {
-            position: absolute; bottom: calc(100% + 8px); min-width: 144px; display: flex; flex-direction: column; gap: 0;
-            padding: 5px; border: 1px solid #d7dde6; border-radius: 14px; background: rgba(252, 253, 255, 0.98);
-            box-shadow: 0 14px 32px rgba(16, 24, 40, 0.14); z-index: 20;
+            position: absolute; bottom: calc(100% + 8px); min-width: 148px; display: flex; flex-direction: column; gap: 0;
+            padding: 5px; border: 1px solid var(--line); border-radius: 14px; background: var(--overlay);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 14px 32px var(--shadow-color); z-index: 20;
+        }
+        @media (prefers-reduced-motion: no-preference) {
+            .control-menu-popup {
+                transform-origin: bottom center;
+                animation: menu-pop 0.16s cubic-bezier(0.2, 0.8, 0.3, 1);
+            }
+            @keyframes menu-pop { from { opacity: 0; transform: translateY(5px) scale(0.97); } }
         }
         .control-menu-popup[hidden] { display: none; }
         .control-menu.align-right .control-menu-popup { right: 0; }
@@ -78,27 +222,36 @@
         .board-controls .control-menu-item {
             width: 100%; text-align: left; padding: 12px 14px; font-size: 13px; font-weight: 600;
             appearance: none; -webkit-appearance: none;
-            color: #344054; background: transparent; border: none; box-shadow: none; border-radius: 10px; outline: none;
+            color: var(--text); background: transparent; border: none; box-shadow: none; border-radius: 10px; outline: none;
             display: flex; align-items: center; justify-content: space-between; gap: 10px;
         }
         .board-controls .control-menu-item[hidden] { display: none !important; }
-        .board-controls .control-menu-item:hover { background: #f2f5fa; }
+        .board-controls .control-menu-item:hover { background: var(--tint-hover); }
         .board-controls .control-menu-item:focus,
         .board-controls .control-menu-item:focus-visible { outline: none; }
         .board-controls .control-menu-item::after { content: ''; width: 1em; flex: 0 0 1em; }
-        .board-controls .control-menu-item.active::after { content: '✓'; color: #667085; }
+        .board-controls .control-menu-item.active::after { content: '✓'; color: var(--muted); }
         .board-controls .control-menu-item.board-theme-item::after,
-        .board-controls .control-menu-item.language-item::after { content: attr(data-value); width: auto; flex: 0 0 auto; color: #667085; }
+        .board-controls .control-menu-item.color-scheme-item::after,
+        .board-controls .control-menu-item.language-item::after { content: attr(data-value); width: auto; flex: 0 0 auto; color: var(--muted); }
         .nav-btn {
             padding: 0; display: inline-flex; align-items: center; justify-content: center;
-            text-align: center; line-height: 1; height: 48px;
+            text-align: center; line-height: 1; height: 50px; position: relative;
+        }
+        /* Hairline between adjacent arrows, vertically inset. */
+        .ctrl-center .nav-btn:not(:last-child)::after {
+            content: ""; position: absolute; right: 0; top: 25%; bottom: 25%; width: 1px;
+            background: var(--hairline);
         }
         .nav-btn.branch { width: 3.8em; letter-spacing: -0.08em; }
-        .nav-btn.step { width: 4.7em; }
+        .nav-btn.step { width: 4.9em; }
+        /* Comment: the review core. Borderless soft-fill that reads as part of
+           the paper; a quiet ring appears on focus. */
         textarea {
-            width: 100%; flex-grow: 1; min-height: 150px; resize: none; overflow-y: auto; touch-action: pan-y; padding: 10px; font-size: 16px;
-            border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; outline: none; background-color: #fff; color: #333;
-            transition: border-color 0.16s ease, box-shadow 0.16s ease;
+            width: 100%; flex-grow: 1; min-height: 150px; resize: none; overflow-y: auto; touch-action: pan-y; padding: 14px 16px; font-size: 16px;
+            border: 0; border-radius: 16px; box-sizing: border-box; outline: none;
+            background-color: var(--fill-soft); color: var(--text); line-height: 1.6;
+            transition: background-color 0.16s ease, box-shadow 0.16s ease;
         }
         input, textarea, [contenteditable="true"], [contenteditable="plaintext-only"] {
             -webkit-user-select: text;
@@ -107,26 +260,28 @@
         }
         body:not(.touch-main) textarea:focus,
         body:not(.touch-main) textarea:focus-visible {
-            border-color: #7ab8f5;
-            box-shadow: inset 0 0 0 2px rgba(100,170,240,0.35);
+            background-color: var(--panel-strong);
+            box-shadow: inset 0 0 0 1px var(--focus-ring);
         }
         .hidden-hint { color: transparent !important; caret-color: transparent !important; }
         .hidden-hint::placeholder { color: transparent !important; }
-        .guide { font-size: 13px; color: #666; line-height: 1.5; background: #f9f9fb; padding: 10px; border-radius: 4px; border: 1px solid #eee; }
+        .guide { font-size: 13px; color: var(--muted); line-height: 1.6; background: transparent; padding: 4px 6px; border-radius: 0; border: 0; }
+        .guide b { color: var(--text); font-weight: 700; }
         .side-tabs {
             display: inline-flex; gap: 2px; align-self: flex-start;
-            padding: 2px; border-radius: 999px; background: #f2f4f7; border: 1px solid #e3e7ed;
+            padding: 3px; border-radius: 999px; background: var(--fill-soft); border: 1px solid var(--hairline);
             position: absolute; right: 0; bottom: 10px; z-index: 5;
-            box-shadow: 0 10px 24px rgba(16, 24, 40, 0.12);
+            box-shadow: 0 8px 20px var(--shadow-color);
         }
         .side-tabs[hidden] { display: none !important; }
         .tab-btn {
-            appearance: none; border: 0; background: transparent; color: #667085;
-            border-radius: 999px; padding: 5px 11px; font-size: 12px; font-weight: 600; letter-spacing: 0.01em;
+            appearance: none; border: 0; background: transparent; color: var(--muted);
+            border-radius: 999px; padding: 6px 13px; font-size: 12px; font-weight: 600; letter-spacing: 0.01em;
             cursor: pointer; user-select: none; -webkit-user-select: none;
+            transition: background 0.16s ease, color 0.16s ease;
         }
-        .tab-btn:hover { color: #344054; background: rgba(255, 255, 255, 0.55); }
-        .tab-btn.active { background: #fff; color: #101828; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08); }
+        .tab-btn:hover { color: var(--text); background: var(--tint-hover); }
+        .tab-btn.active { background: var(--panel-strong); color: var(--text); box-shadow: 0 1px 3px var(--shadow-color); }
         .tab-panel { display: none; flex: 1 1 0; min-height: 0; padding-bottom: 0; }
         .tab-panel.active { display: flex; flex-direction: column; }
         .comment-panel textarea { height: 100%; min-height: 0; }
@@ -136,82 +291,83 @@
         .label-list-panel { flex: 1 1 0; min-height: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; touch-action: pan-y; }
         .label-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(72px, 0.55fr) auto; gap: 8px; align-items: stretch; }
         .label-field input {
-            width: 100%; min-height: 38px; box-sizing: border-box; padding: 9px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;
+            width: 100%; min-height: 40px; box-sizing: border-box; padding: 10px 12px; border: 0; border-radius: 12px; font-size: 14px;
+            background: var(--fill-soft); color: var(--text); outline: none;
+            transition: background-color 0.16s ease, box-shadow 0.16s ease;
+        }
+        .label-field input:focus {
+            background: var(--panel-strong); box-shadow: inset 0 0 0 1px var(--focus-ring);
         }
         .label-form-actions { display: contents; }
+        .label-form-btn { border-radius: 12px; }
         .label-form-btn.primary {
-            min-height: 38px; height: 100%; box-sizing: border-box; background: #eef4ff; border-color: #bfd2fb;
-            color: #24488f; padding: 0 14px; align-self: stretch;
+            min-height: 40px; height: 100%; box-sizing: border-box; background: var(--accent-soft); border: 0;
+            color: var(--accent-strong); padding: 0 16px; align-self: stretch; font-weight: 700;
         }
-        .label-leaf-delete { background: #fff; }
+        .label-form-btn.primary:hover { background: var(--accent-soft); filter: brightness(1.04); }
+        .label-leaf-delete { background: transparent; }
         .label-error {
             display: none; align-items: center; gap: 8px; flex-wrap: wrap;
-            background: #fff2f0; border: 1px solid #f0b8b2; color: #9a3126; border-radius: 6px; padding: 8px 10px; font-size: 13px;
+            background: var(--danger-soft); border: 0; color: var(--danger); border-radius: 10px; padding: 8px 12px; font-size: 13px;
         }
         .label-error.active { display: flex; }
-        .label-error button { padding: 7px 10px; font-size: 12px; }
+        .label-error button { padding: 7px 10px; font-size: 12px; border-radius: 8px; }
         .label-tree {
             flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;
             touch-action: pan-y; -webkit-overflow-scrolling: touch; border: 0; border-radius: 4px;
             background: transparent; padding: 0;
-            transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+            transition: box-shadow 0.16s ease, background-color 0.16s ease;
         }
-        .label-empty { color: #666; font-size: 13px; padding: 8px 4px; }
+        .label-empty { color: var(--muted); font-size: 13px; padding: 8px 4px; }
         .label-group, .label-subgroup, .label-leaf { background: transparent; }
         .label-group-header, .label-subgroup-header, .label-leaf-row {
-            display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; padding: 7px 2px;
+            display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; padding: 8px 2px;
             -webkit-tap-highlight-color: transparent;
         }
         .label-group-header, .label-subgroup-header {
-            border-bottom: 1px solid #edf0f4;
+            border-bottom: 1px solid var(--hairline);
         }
         .label-item-main {
             flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 8px;
-            padding: 0; border: 0; background: transparent; color: #344054; text-align: left;
+            padding: 0; border: 0; background: transparent; color: var(--text); text-align: left;
             font: inherit; cursor: pointer;
         }
-        .label-item-main:hover { color: #101828; background: transparent; }
+        .label-item-main:hover { color: var(--accent-strong); background: transparent; }
         .label-item-actions {
             flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: flex-end; gap: 2px;
             margin-left: auto;
         }
-        .label-tree:focus {
-            outline: none; border-color: #98b8f5;
-            box-shadow: inset 0 0 0 2px rgba(126, 177, 255, 0.45);
-            background: transparent;
-        }
+        .label-tree:focus,
         .label-tree:focus-visible {
-            outline: none; border-color: #98b8f5;
-            box-shadow: inset 0 0 0 2px rgba(126, 177, 255, 0.45);
-            background: transparent;
+            outline: none; box-shadow: none; background: transparent;
         }
         .label-item-focused {
-            border-radius: 6px; background: #eef4ff;
-            box-shadow: inset 0 0 0 1px #bfd2fb;
+            border-radius: 8px; background: var(--accent-soft);
+            box-shadow: inset 0 0 0 1px var(--accent-soft);
         }
-        .label-toggle { width: 1.2em; text-align: center; color: #98a2b3; font-size: 11px; }
+        .label-toggle { width: 1.2em; text-align: center; color: var(--faint); font-size: 11px; }
         .label-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
-        .label-count { color: #98a2b3; font-size: 11px; font-weight: 500; }
+        .label-count { color: var(--faint); font-size: 11px; font-weight: 500; }
         .label-subtree { display: flex; flex-direction: column; gap: 2px; padding: 2px 0 0 14px; }
-        .label-leaf-row { border-bottom: 1px solid #f2f4f7; cursor: pointer; }
-        .label-leaf-row.current { color: #184a9a; }
-        .label-leaf-row.highlight { box-shadow: inset 2px 0 0 #7eb1ff; }
+        .label-leaf-row { border-bottom: 1px solid var(--hairline); cursor: pointer; border-radius: 6px; }
+        .label-leaf-row:hover { background: var(--tint-hover); }
+        .label-leaf-row.current { color: var(--accent-strong); font-weight: 600; }
+        .label-leaf-row.highlight { box-shadow: inset 2px 0 0 var(--accent); }
         .label-leaf-main { flex: 1 1 auto; display: flex; align-items: center; gap: 8px; min-width: 0; }
         .label-leaf-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; padding-left: 6px; }
         .label-action-btn {
             padding: 0 4px; font-size: 16px; line-height: 1; background: transparent; border: 0;
-            color: #98a2b3; font-weight: 500; min-width: 1.2em;
+            color: var(--faint); font-weight: 500; min-width: 1.2em; cursor: pointer;
         }
-        .label-action-btn:hover { background: transparent; color: #667085; }
-        .label-action-btn { color: #98a2b3; }
+        .label-action-btn:hover { background: transparent; color: var(--text); }
         .label-action-btn[disabled] { visibility: hidden; pointer-events: none; }
         body.touch-main .label-register-panel { display: none; }
         body.touch-main .container { flex-wrap: wrap; }
         body.touch-main .guide { display: none; }
         body.bottom-controls-layout .board-controls {
             position: fixed; left: 50%; bottom: var(--bottom-controls-offset); transform: translateX(-50%);
-            width: min(620px, calc(100vw - 16px)); margin: 0; padding: 8px; border-radius: 16px;
-            background: rgba(255, 255, 255, 0.7); box-shadow: 0 8px 24px rgba(16, 24, 40, 0.08); z-index: 30;
+            width: min(620px, calc(100vw - 16px)); margin: 0; padding: 6px 8px; border-radius: 16px;
+            background: var(--panel); backdrop-filter: blur(10px); box-shadow: 0 8px 24px var(--shadow-color); z-index: 30;
         }
         body.bottom-controls-layout.control-menu-open .board-controls { z-index: 40; }
         body.bottom-controls-layout .side-tabs {
@@ -273,10 +429,28 @@
             .container { flex-wrap: nowrap; }
             .left-pane { width: 620px; flex: 0 0 auto; }
             .right-pane { width: 416px; flex: 0 0 auto; }
-            textarea { min-height: 300px; line-height: 1.45; }
-            .label-field input:focus {
-                border-color: #7ab8f5; box-shadow: 0 0 0 3px rgba(100,170,240,0.25);
+            textarea { min-height: 300px; line-height: 1.6; }
+        }
+
+        /* Quiet scrollbars, desktop only: invisible at rest, a hairline thumb
+           while the pointer is over the list. Touch devices keep native bars. */
+        @media (hover: hover) and (pointer: fine) {
+            textarea, .label-tree {
+                scrollbar-width: thin;
+                scrollbar-color: transparent transparent;
             }
+            textarea:hover, textarea:focus, .label-tree:hover {
+                scrollbar-color: var(--line) transparent;
+            }
+            textarea::-webkit-scrollbar,
+            .label-tree::-webkit-scrollbar { width: 6px; }
+            textarea::-webkit-scrollbar-track,
+            .label-tree::-webkit-scrollbar-track { background: transparent; }
+            textarea::-webkit-scrollbar-thumb,
+            .label-tree::-webkit-scrollbar-thumb { background: transparent; border-radius: 999px; }
+            textarea:hover::-webkit-scrollbar-thumb,
+            textarea:focus::-webkit-scrollbar-thumb,
+            .label-tree:hover::-webkit-scrollbar-thumb { background: var(--line); }
         }
     </style>
 </head>
@@ -317,6 +491,7 @@
                     </button>
                     <div id="viewMenu" class="control-menu-popup" hidden>
                         <button id="languageActionBtn" class="control-menu-item language-item" type="button" onclick="cycleLanguageFromMenu()" data-value="日">言語</button>
+                        <button id="colorSchemeActionBtn" class="control-menu-item color-scheme-item" type="button" onclick="cycleColorSchemeFromMenu()" data-value="自動">配色</button>
                         <button id="toggleCoordsActionBtn" class="control-menu-item" type="button" onclick="toggleCoordsFromMenu()">座標</button>
                         <button id="cycleBoardThemeActionBtn" class="control-menu-item board-theme-item" type="button" onclick="cycleBoardThemeFromMenu()" data-value="茶系">盤面色</button>
                         <button id="toggleSideTabsActionBtn" class="control-menu-item" type="button" onclick="toggleSideTabsFromMenu()">タブ</button>
@@ -402,6 +577,7 @@
     const viewMenuBtn = document.getElementById('viewMenuBtn');
     const viewMenu = document.getElementById('viewMenu');
     const cycleBoardThemeActionBtn = document.getElementById('cycleBoardThemeActionBtn');
+    const colorSchemeActionBtn = document.getElementById('colorSchemeActionBtn');
     const toggleSideTabsActionBtn = document.getElementById('toggleSideTabsActionBtn');
     const toggleHintsActionBtn = document.getElementById('toggleHintsActionBtn');
     const toggleCoordsActionBtn = document.getElementById('toggleCoordsActionBtn');
@@ -430,11 +606,15 @@
     let tree = {}, posDb = {}, positionLabels = createEmptyPositionLabels();
     let currentNodeId = 'r', nextNodeId = 1;
     let showHints = true, showCoords = true, showMoveNumbers = true, showSideTabs = false, activeSideTab = 'comment';
+    // Palette principle (from playren): the board is always a step darker than
+    // the white stone (~#f7f4ee), the gradient span is narrow so stones read the
+    // same everywhere, and every theme leans warm.
     const boardThemes = [
-        { label: '茶', color: '#e3c482' },
-        { label: '緑', color: '#9fbc8b' },
-        { label: '灰', color: '#e7e7e7' },
-        { label: '白', color: '#ffffff' },
+        { label: '茶', grad1: '#e0c185', grad2: '#c29457' },
+        { label: '緑', grad1: '#b9d2af', grad2: '#94b88c' },
+        { label: '紫', grad1: '#cdbcdc', grad2: '#a98bbd' },
+        { label: '灰', grad1: '#d9d3c7', grad2: '#b6ad9e' },
+        { label: '白', grad1: '#f0e9da', grad2: '#d9cfba' },
     ];
     const translations = {
         ja: {
@@ -451,6 +631,10 @@
             save: '保存',
             coords: '座標',
             boardTheme: '盤面色',
+            colorScheme: '配色',
+            colorSchemeAuto: '自動',
+            colorSchemeLight: 'ライト',
+            colorSchemeDark: 'ダーク',
             sideTabs: 'タブ',
             moveNumbers: '手数',
             hints: '記号等',
@@ -489,6 +673,10 @@
             save: '保存',
             coords: '坐标',
             boardTheme: '棋盘色',
+            colorScheme: '配色',
+            colorSchemeAuto: '自动',
+            colorSchemeLight: '浅色',
+            colorSchemeDark: '深色',
             sideTabs: '标签',
             moveNumbers: '手数',
             hints: '符号等',
@@ -516,6 +704,49 @@
     };
     let boardThemeIndex = 0;
     let currentLanguage = 'ja';
+    let colorSchemePreference = 'auto';
+    const COLOR_SCHEME_ORDER = ['auto', 'light', 'dark'];
+    const THEME_META_COLORS = { light: '#f3efe6', dark: '#1a1613' };
+
+    function applyColorScheme() {
+        if (colorSchemePreference === 'auto') {
+            delete document.documentElement.dataset.theme;
+        } else {
+            document.documentElement.dataset.theme = colorSchemePreference;
+        }
+        document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
+            if (colorSchemePreference === 'auto') {
+                meta.content = (meta.media || '').includes('dark') ? THEME_META_COLORS.dark : THEME_META_COLORS.light;
+            } else {
+                meta.content = THEME_META_COLORS[colorSchemePreference];
+            }
+        });
+    }
+
+    function colorSchemeLabel() {
+        const text = getCurrentTranslation();
+        return colorSchemePreference === 'light' ? text.colorSchemeLight
+            : (colorSchemePreference === 'dark' ? text.colorSchemeDark : text.colorSchemeAuto);
+    }
+
+    function cycleColorScheme() {
+        const i = COLOR_SCHEME_ORDER.indexOf(colorSchemePreference);
+        colorSchemePreference = COLOR_SCHEME_ORDER[(i + 1) % COLOR_SCHEME_ORDER.length];
+        applyColorScheme();
+        updateViewMenuButtons();
+        saveAppSettingsToLocalStorage(buildAppSettings());
+    }
+
+    function cycleColorSchemeFromMenu() {
+        closeControlMenus();
+        cycleColorScheme();
+    }
+
+    if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            if (colorSchemePreference === 'auto') applyColorScheme();
+        });
+    }
     let highlightedLabelPosKey = null;
     let labelErrorActionHandler = null;
     let currentOpenControlMenu = null;
@@ -745,6 +976,7 @@
         return {
             language: currentLanguage,
             boardThemeIndex,
+            colorScheme: colorSchemePreference,
             showHints,
             showCoords,
             showMoveNumbers,
@@ -833,6 +1065,7 @@
         const normalized = {
             language: settings.language === 'zh' ? 'zh' : 'ja',
             boardThemeIndex: Number.isInteger(settings.boardThemeIndex) ? settings.boardThemeIndex : 0,
+            colorScheme: ['auto', 'light', 'dark'].includes(settings.colorScheme) ? settings.colorScheme : 'auto',
             showHints: typeof settings.showHints === 'boolean' ? settings.showHints : true,
             showCoords: typeof settings.showCoords === 'boolean' ? settings.showCoords : true,
             showMoveNumbers: typeof settings.showMoveNumbers === 'boolean' ? settings.showMoveNumbers : true,
@@ -850,11 +1083,13 @@
 
         currentLanguage = normalized.language;
         boardThemeIndex = normalized.boardThemeIndex;
+        colorSchemePreference = normalized.colorScheme;
         showHints = normalized.showHints;
         showCoords = normalized.showCoords;
         showMoveNumbers = normalized.showMoveNumbers;
         showSideTabs = normalized.showSideTabs;
         activeSideTab = 'comment';
+        applyColorScheme();
 
         if (showCoords) {
             CELL_SIZE = 40; MARGIN_L = 35; MARGIN_R = 25; MARGIN_T = 25; MARGIN_B = 35;
@@ -1548,19 +1783,37 @@
 
     function drawBoard() {
         bgCtx.clearRect(0, 0, LOGICAL_W, LOGICAL_H);
-        bgCtx.beginPath(); bgCtx.strokeStyle = '#000'; bgCtx.lineWidth = 1;
+
+        // Wood gradient fills the board itself (the one bright object).
+        const theme = boardThemes[boardThemeIndex];
+        const grad = bgCtx.createLinearGradient(0, 0, LOGICAL_W, LOGICAL_H);
+        grad.addColorStop(0, theme.grad1);
+        grad.addColorStop(1, theme.grad2);
+        bgCtx.fillStyle = grad;
+        bgCtx.fillRect(0, 0, LOGICAL_W, LOGICAL_H);
+        // Faint rim so pale themes (灰/白) keep an edge against the paper.
+        bgCtx.strokeStyle = 'rgba(74, 54, 34, 0.16)';
+        bgCtx.lineWidth = 1;
+        bgCtx.strokeRect(0.5, 0.5, LOGICAL_W - 1, LOGICAL_H - 1);
+
+        const gridEnd = MARGIN_L + (BOARD_SIZE - 1) * CELL_SIZE;
+        bgCtx.beginPath(); bgCtx.strokeStyle = 'rgba(63, 42, 19, 0.9)'; bgCtx.lineWidth = 1;
         for (let i = 0; i < BOARD_SIZE; i++) {
             bgCtx.moveTo(MARGIN_L + i * CELL_SIZE, MARGIN_T);
             bgCtx.lineTo(MARGIN_L + i * CELL_SIZE, MARGIN_T + (BOARD_SIZE - 1) * CELL_SIZE);
             bgCtx.moveTo(MARGIN_L, MARGIN_T + i * CELL_SIZE);
-            bgCtx.lineTo(MARGIN_L + (BOARD_SIZE - 1) * CELL_SIZE, MARGIN_T + i * CELL_SIZE);
+            bgCtx.lineTo(gridEnd, MARGIN_T + i * CELL_SIZE);
         }
         bgCtx.stroke();
+        // Slightly thicker outer frame (traditional board look).
+        bgCtx.lineWidth = 1.5;
+        bgCtx.strokeRect(MARGIN_L, MARGIN_T, (BOARD_SIZE - 1) * CELL_SIZE, (BOARD_SIZE - 1) * CELL_SIZE);
+
         const stars = [[3,3], [11,3], [7,7], [3,11], [11,11]];
-        bgCtx.fillStyle = '#000';
+        bgCtx.fillStyle = 'rgba(51, 33, 17, 0.82)';
         for (let [x, y] of stars) { bgCtx.beginPath(); bgCtx.arc(MARGIN_L + x * CELL_SIZE, MARGIN_T + y * CELL_SIZE, 3, 0, Math.PI * 2); bgCtx.fill(); }
         if (showCoords) {
-            bgCtx.fillStyle = '#333'; bgCtx.font = '14px Arial'; bgCtx.textAlign = 'center'; bgCtx.textBaseline = 'middle';
+            bgCtx.fillStyle = 'rgba(63, 42, 19, 0.82)'; bgCtx.font = '600 14px Arial'; bgCtx.textAlign = 'center'; bgCtx.textBaseline = 'middle';
             for (let i = 0; i < BOARD_SIZE; i++) {
                 bgCtx.fillText(String.fromCharCode(65 + i), MARGIN_L + i * CELL_SIZE, LOGICAL_H - 15);
                 bgCtx.fillText((BOARD_SIZE - i).toString(), 15, MARGIN_T + i * CELL_SIZE);
@@ -1569,8 +1822,45 @@
     }
 
     function applyBoardTheme() {
-        bgCanvas.style.backgroundColor = boardThemes[boardThemeIndex].color;
+        drawBoard();
         updateViewMenuButtons();
+    }
+
+    // Soft glass-bead stone: a top-left highlight rolling off into a darker
+    // rim, plus a warm drop shadow so it sits on the board (from playren).
+    function createStoneFill(x, y, r, isBlack) {
+        const g = ctx.createRadialGradient(x - r * 0.36, y - r * 0.42, r * 0.06, x, y, r * 1.04);
+        if (isBlack) {
+            g.addColorStop(0, '#4e4941');
+            g.addColorStop(0.35, '#312e29');
+            g.addColorStop(0.75, '#201d19');
+            g.addColorStop(1, '#14110d');
+        } else {
+            g.addColorStop(0, '#ffffff');
+            g.addColorStop(0.45, '#faf6ec');
+            g.addColorStop(0.85, '#eee4d0');
+            g.addColorStop(1, '#dccfb6');
+        }
+        return g;
+    }
+
+    function drawStoneBody(x, y, r, isBlack) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = createStoneFill(x, y, r, isBlack);
+        ctx.save();
+        // Canvas shadow units ignore the CTM, so scale by dpr to stay proportional.
+        ctx.shadowColor = 'rgba(38, 24, 10, 0.32)';
+        ctx.shadowBlur = r * 0.42 * dpr;
+        ctx.shadowOffsetY = r * 0.15 * dpr;
+        ctx.fill();
+        ctx.restore();
+        // Hairline rim instead of a hard outline.
+        ctx.beginPath();
+        ctx.arc(x, y, r - 0.25, 0, Math.PI * 2);
+        ctx.lineWidth = Math.max(0.5, r * 0.03);
+        ctx.strokeStyle = isBlack ? 'rgba(0, 0, 0, 0.2)' : 'rgba(74, 54, 34, 0.28)';
+        ctx.stroke();
     }
 
     function drawStonesAndHighlights(data, bestI) {
@@ -1578,18 +1868,16 @@
         while (curr && curr.i !== 'r') { path.unshift(curr); curr = tree[curr.p]; }
         for (let node of path) {
             let sx = MARGIN_L + node.x * CELL_SIZE, sy = MARGIN_T + node.y * CELL_SIZE;
-            ctx.beginPath(); ctx.arc(sx, sy, CELL_SIZE * 0.45, 0, Math.PI * 2);
-            ctx.fillStyle = node.o === 1 ? '#000' : '#fff'; ctx.fill();
-            ctx.lineWidth = 1; ctx.strokeStyle = '#333'; ctx.stroke();
+            const isBlack = node.o === 1;
+            drawStoneBody(sx, sy, CELL_SIZE * 0.45, isBlack);
             if (showMoveNumbers) {
                 const moveText = node.m.toString();
                 const moveTextY = sy + Math.max(1, Math.round(CELL_SIZE * 0.03));
-                ctx.fillStyle = node.o === 1 ? '#eee' : '#333';
+                // Translucent, ink-like numeral: no halo, so the stone's sheen
+                // shows through and the digit reads as printed on the stone.
+                ctx.fillStyle = isBlack ? 'rgba(244, 238, 228, 0.86)' : 'rgba(66, 51, 34, 0.82)';
                 ctx.font = `600 ${Math.max(14, Math.floor(CELL_SIZE * 0.42))}px 'Segoe UI', 'Yu Gothic UI', Meiryo, sans-serif`;
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.lineWidth = 2.5;
-                ctx.strokeStyle = node.o === 1 ? 'rgba(0, 0, 0, 0.55)' : 'rgba(255, 255, 255, 0.9)';
-                ctx.strokeText(moveText, sx, moveTextY);
                 ctx.fillText(moveText, sx, moveTextY);
             }
         }
@@ -1699,6 +1987,10 @@
         toggleCoordsActionBtn.textContent = text.coords;
         cycleBoardThemeActionBtn.textContent = text.boardTheme;
         cycleBoardThemeActionBtn.dataset.value = boardThemes[boardThemeIndex].label;
+        if (colorSchemeActionBtn) {
+            colorSchemeActionBtn.textContent = text.colorScheme;
+            colorSchemeActionBtn.dataset.value = colorSchemeLabel();
+        }
         toggleSideTabsActionBtn.textContent = text.sideTabs;
         toggleMoveNumbersActionBtn.textContent = text.moveNumbers;
         toggleHintsActionBtn.textContent = text.hints;
@@ -2356,6 +2648,8 @@
     const savedAppSettings = restoreAppSettingsFromLocalStorage();
     if (savedAppSettings) {
         applyAppSettings(savedAppSettings);
+    } else {
+        applyColorScheme();
     }
     restoreKifuFromIndexedDb()
         .then((saved) => {
