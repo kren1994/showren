@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#f3efe6" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#2a241d" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#f3efe6">
     <title>連珠 検討用ボード</title>
     <script>
-        // Apply a manually chosen color scheme before first paint (no flash).
+        // Apply the chosen color scheme before first paint (no flash).
+        // Default is light; options are light / gray / dark (no OS auto-follow).
         try {
             const s = JSON.parse(localStorage.getItem('showren-settings') || 'null');
-            if (s && (s.colorScheme === 'light' || s.colorScheme === 'dark')) {
-                document.documentElement.dataset.theme = s.colorScheme;
-            }
+            const scheme = s && ['light', 'gray', 'dark'].includes(s.colorScheme) ? s.colorScheme : 'light';
+            document.documentElement.dataset.theme = scheme;
+            const meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.content = { light: '#f3efe6', gray: '#2a241d', dark: '#1a1613' }[scheme];
         } catch (e) { /* first visit */ }
     </script>
     <style>
@@ -51,37 +52,9 @@
         /* 夜の和紙: dark charcoal paper; the wood board stays light and becomes
            the single bright object. Applied on OS-dark (unless forced light)
            or when forced dark. */
-        @media (prefers-color-scheme: dark) {
-            :root:not([data-theme="light"]) {
-                --bg: #2a241d;
-                --bg-accent: #332c22;
-                --bg-glow: rgba(255, 244, 224, 0.06);
-                --panel: rgba(54, 47, 38, 0.92);
-                --panel-strong: #3a3228;
-                --overlay: rgba(50, 43, 34, 0.96);
-                --fill-soft: rgba(236, 224, 202, 0.08);
-                --hairline: rgba(236, 224, 202, 0.14);
-                --line: rgba(236, 224, 202, 0.2);
-                --field-line: rgba(236, 224, 202, 0.18);
-                --tint-hover: rgba(99, 199, 170, 0.09);
-                --tint-active: rgba(99, 199, 170, 0.16);
-                --focus-ring: rgba(99, 199, 170, 0.5);
-                --text: #ece3d3;
-                --muted: #b0a189;
-                --faint: #94856f;
-                --accent: #46a98c;
-                --accent-strong: #63c7aa;
-                --accent-soft: rgba(99, 199, 170, 0.16);
-                --danger: #e0796a;
-                --danger-soft: rgba(224, 121, 106, 0.12);
-                --shadow-color: rgba(0, 0, 0, 0.5);
-                --stone-black-rim: rgba(233, 218, 191, 0.4);
-                --stone-white-rim: rgba(233, 218, 191, 0.2);
-                --board-dim: brightness(0.96);
-                color-scheme: dark;
-            }
-        }
-        :root[data-theme="dark"] {
+        /* Manual color scheme only (no OS auto-follow):
+           gray = warm dark paper, dark = deeper near-black. */
+        :root[data-theme="gray"] {
             --bg: #2a241d;
             --bg-accent: #332c22;
             --bg-glow: rgba(255, 244, 224, 0.06);
@@ -107,6 +80,34 @@
             --stone-black-rim: rgba(233, 218, 191, 0.4);
             --stone-white-rim: rgba(233, 218, 191, 0.2);
             --board-dim: brightness(0.96);
+            color-scheme: dark;
+        }
+        :root[data-theme="dark"] {
+            --bg: #1a1613;
+            --bg-accent: #231d16;
+            --bg-glow: rgba(255, 244, 224, 0.05);
+            --panel: rgba(38, 32, 25, 0.92);
+            --panel-strong: #2a231b;
+            --overlay: rgba(34, 28, 22, 0.95);
+            --fill-soft: rgba(233, 218, 191, 0.07);
+            --hairline: rgba(233, 218, 191, 0.12);
+            --line: rgba(233, 218, 191, 0.18);
+            --field-line: rgba(233, 218, 191, 0.16);
+            --tint-hover: rgba(99, 199, 170, 0.09);
+            --tint-active: rgba(99, 199, 170, 0.16);
+            --focus-ring: rgba(99, 199, 170, 0.5);
+            --text: #ece3d3;
+            --muted: #a3947d;
+            --faint: #8a7c68;
+            --accent: #46a98c;
+            --accent-strong: #63c7aa;
+            --accent-soft: rgba(99, 199, 170, 0.16);
+            --danger: #e0796a;
+            --danger-soft: rgba(224, 121, 106, 0.12);
+            --shadow-color: rgba(0, 0, 0, 0.5);
+            --stone-black-rim: rgba(233, 218, 191, 0.4);
+            --stone-white-rim: rgba(233, 218, 191, 0.2);
+            --board-dim: brightness(0.93);
             color-scheme: dark;
         }
         html {
@@ -636,7 +637,7 @@
             coords: '座標',
             boardTheme: '盤面色',
             colorScheme: '配色',
-            colorSchemeAuto: '自動',
+            colorSchemeGray: 'グレー',
             colorSchemeLight: 'ライト',
             colorSchemeDark: 'ダーク',
             sideTabs: 'タブ',
@@ -679,7 +680,7 @@
             coords: '坐标',
             boardTheme: '棋盘色',
             colorScheme: '配色',
-            colorSchemeAuto: '自动',
+            colorSchemeGray: '灰色',
             colorSchemeLight: '浅色',
             colorSchemeDark: '深色',
             sideTabs: '标签',
@@ -710,29 +711,21 @@
     };
     let boardThemeIndex = 0;
     let currentLanguage = 'ja';
-    let colorSchemePreference = 'auto';
-    const COLOR_SCHEME_ORDER = ['auto', 'light', 'dark'];
-    const THEME_META_COLORS = { light: '#f3efe6', dark: '#2a241d' };
+    let colorSchemePreference = 'light';
+    const COLOR_SCHEME_ORDER = ['light', 'gray', 'dark'];
+    const THEME_META_COLORS = { light: '#f3efe6', gray: '#2a241d', dark: '#1a1613' };
 
     function applyColorScheme() {
-        if (colorSchemePreference === 'auto') {
-            delete document.documentElement.dataset.theme;
-        } else {
-            document.documentElement.dataset.theme = colorSchemePreference;
-        }
+        document.documentElement.dataset.theme = colorSchemePreference;
         document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
-            if (colorSchemePreference === 'auto') {
-                meta.content = (meta.media || '').includes('dark') ? THEME_META_COLORS.dark : THEME_META_COLORS.light;
-            } else {
-                meta.content = THEME_META_COLORS[colorSchemePreference];
-            }
+            meta.content = THEME_META_COLORS[colorSchemePreference] || THEME_META_COLORS.light;
         });
     }
 
     function colorSchemeLabel() {
         const text = getCurrentTranslation();
-        return colorSchemePreference === 'light' ? text.colorSchemeLight
-            : (colorSchemePreference === 'dark' ? text.colorSchemeDark : text.colorSchemeAuto);
+        return colorSchemePreference === 'gray' ? text.colorSchemeGray
+            : (colorSchemePreference === 'dark' ? text.colorSchemeDark : text.colorSchemeLight);
     }
 
     function cycleColorScheme() {
@@ -747,11 +740,6 @@
         cycleColorScheme();
     }
 
-    if (window.matchMedia) {
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-            if (colorSchemePreference === 'auto') applyColorScheme();
-        });
-    }
     let highlightedLabelPosKey = null;
     let labelErrorActionHandler = null;
     let currentOpenControlMenu = null;
@@ -1071,7 +1059,7 @@
         const normalized = {
             language: settings.language === 'zh' ? 'zh' : 'ja',
             boardThemeIndex: Number.isInteger(settings.boardThemeIndex) ? settings.boardThemeIndex : 0,
-            colorScheme: ['auto', 'light', 'dark'].includes(settings.colorScheme) ? settings.colorScheme : 'auto',
+            colorScheme: ['light', 'gray', 'dark'].includes(settings.colorScheme) ? settings.colorScheme : 'light',
             showHints: typeof settings.showHints === 'boolean' ? settings.showHints : true,
             showCoords: typeof settings.showCoords === 'boolean' ? settings.showCoords : true,
             showMoveNumbers: typeof settings.showMoveNumbers === 'boolean' ? settings.showMoveNumbers : true,
