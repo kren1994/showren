@@ -743,7 +743,6 @@
     }
 
     function cycleColorSchemeFromMenu() {
-        closeControlMenus();
         cycleColorScheme();
     }
 
@@ -2214,7 +2213,6 @@
     }
 
     function toggleStoneShadingFromMenu() {
-        closeControlMenus();
         toggleStoneShading();
     }
 
@@ -2290,18 +2288,17 @@
         saveAppSettingsToLocalStorage(buildAppSettings());
     }
 
+    // View-menu toggles/cycles keep the menu open (match playren), so several
+    // display tweaks can be made without reopening it each time.
     function cycleLanguageFromMenu() {
-        closeControlMenus();
         cycleLanguage();
     }
 
     function toggleHintsFromMenu() {
-        closeControlMenus();
         toggleHints();
     }
 
     function toggleCoordsFromMenu() {
-        closeControlMenus();
         toggleCoords();
     }
 
@@ -2312,17 +2309,14 @@
     }
 
     function cycleBoardThemeFromMenu() {
-        closeControlMenus();
         cycleBoardTheme();
     }
 
     function toggleMoveNumbersFromMenu() {
-        closeControlMenus();
         toggleMoveNumbers();
     }
 
     function toggleSideTabsFromMenu() {
-        closeControlMenus();
         toggleSideTabsVisibility();
     }
 
