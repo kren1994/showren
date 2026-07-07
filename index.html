@@ -496,6 +496,7 @@
                         <button id="cycleBoardThemeActionBtn" class="control-menu-item board-theme-item" type="button" onclick="cycleBoardThemeFromMenu()" data-value="茶系">盤面色</button>
                         <button id="toggleSideTabsActionBtn" class="control-menu-item" type="button" onclick="toggleSideTabsFromMenu()">タブ</button>
                         <button id="toggleMoveNumbersActionBtn" class="control-menu-item" type="button" onclick="toggleMoveNumbersFromMenu()">手数</button>
+                        <button id="toggleStoneShadingActionBtn" class="control-menu-item" type="button" onclick="toggleStoneShadingFromMenu()">石の陰影</button>
                         <button id="toggleHintsActionBtn" class="control-menu-item" type="button" onclick="toggleHintsFromMenu()">記号等</button>
                     </div>
                 </div>
@@ -582,6 +583,7 @@
     const toggleHintsActionBtn = document.getElementById('toggleHintsActionBtn');
     const toggleCoordsActionBtn = document.getElementById('toggleCoordsActionBtn');
     const toggleMoveNumbersActionBtn = document.getElementById('toggleMoveNumbersActionBtn');
+    const toggleStoneShadingActionBtn = document.getElementById('toggleStoneShadingActionBtn');
     const guideText = document.getElementById('guideText');
     const sideTabs = document.querySelector('.side-tabs');
     const commentTabBtn = document.getElementById('commentTabBtn');
@@ -606,6 +608,7 @@
     let tree = {}, posDb = {}, positionLabels = createEmptyPositionLabels();
     let currentNodeId = 'r', nextNodeId = 1;
     let showHints = true, showCoords = true, showMoveNumbers = true, showSideTabs = false, activeSideTab = 'comment';
+    let stoneShadingEnabled = true;
     // Palette principle (from playren): the board is always a step darker than
     // the white stone (~#f7f4ee), the gradient span is narrow so stones read the
     // same everywhere, and every theme leans warm.
@@ -637,6 +640,7 @@
             colorSchemeDark: 'ダーク',
             sideTabs: 'タブ',
             moveNumbers: '手数',
+            stoneShading: '石の陰影',
             hints: '記号等',
             guideHtml: '・<b>Delete</b> で 1 手削除 / <b>Ctrl+F</b> で記号等表示切替<br>・<b>Ctrl+O</b> で読込 / <b>Ctrl+S</b> で書出 / <b>Ctrl+Shift+S</b> でブラウザに保存<br>・<b>Ctrl+;</b> でコメント入力切替 / <b>Ctrl+Shift+;</b>でタブ切替',
             commentTab: 'コメント',
@@ -679,6 +683,7 @@
             colorSchemeDark: '深色',
             sideTabs: '标签',
             moveNumbers: '手数',
+            stoneShading: '棋子阴影',
             hints: '符号等',
             guideHtml: '・按 <b>Ctrl+O</b> 读取 / 按 <b>Ctrl+S</b> 导出 / 按 <b>Ctrl+Shift+S</b> 保存到浏览器<br>・按 <b>Delete</b> 删除一手 / 按 <b>Ctrl+F</b> 切换符号显示<br>・按 <b>Ctrl+;</b> 切换评论输入 / 按 <b>Ctrl+Shift+;</b> 切换标签页',
             commentTab: '评论',
@@ -981,6 +986,7 @@
             showCoords,
             showMoveNumbers,
             showSideTabs,
+            stoneShading: stoneShadingEnabled,
         };
     }
 
@@ -1070,6 +1076,7 @@
             showCoords: typeof settings.showCoords === 'boolean' ? settings.showCoords : true,
             showMoveNumbers: typeof settings.showMoveNumbers === 'boolean' ? settings.showMoveNumbers : true,
             showSideTabs: typeof settings.showSideTabs === 'boolean' ? settings.showSideTabs : false,
+            stoneShading: typeof settings.stoneShading === 'boolean' ? settings.stoneShading : true,
         };
         if (boardThemes.length > 0) {
             normalized.boardThemeIndex = ((normalized.boardThemeIndex % boardThemes.length) + boardThemes.length) % boardThemes.length;
@@ -1088,6 +1095,7 @@
         showCoords = normalized.showCoords;
         showMoveNumbers = normalized.showMoveNumbers;
         showSideTabs = normalized.showSideTabs;
+        stoneShadingEnabled = normalized.stoneShading;
         activeSideTab = 'comment';
         applyColorScheme();
 
@@ -1827,8 +1835,9 @@
     }
 
     // Soft glass-bead stone: a top-left highlight rolling off into a darker
-    // rim, plus a warm drop shadow so it sits on the board (from playren).
+    // rim (shading ON). Flat disc when shading OFF (from playren).
     function createStoneFill(x, y, r, isBlack) {
+        if (!stoneShadingEnabled) return isBlack ? '#20201e' : '#f7f4ee';
         const g = ctx.createRadialGradient(x - r * 0.36, y - r * 0.42, r * 0.06, x, y, r * 1.04);
         if (isBlack) {
             g.addColorStop(0, '#4e4941');
@@ -1848,6 +1857,16 @@
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.fillStyle = createStoneFill(x, y, r, isBlack);
+
+        if (!stoneShadingEnabled) {
+            // Flat disc with a thin hard ring (the original look).
+            ctx.fill();
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#333';
+            ctx.stroke();
+            return;
+        }
+
         ctx.save();
         // Canvas shadow units ignore the CTM, so scale by dpr to stay proportional.
         ctx.shadowColor = 'rgba(38, 24, 10, 0.32)';
@@ -1873,12 +1892,21 @@
             if (showMoveNumbers) {
                 const moveText = node.m.toString();
                 const moveTextY = sy + Math.max(1, Math.round(CELL_SIZE * 0.03));
-                // Translucent, ink-like numeral: no halo, so the stone's sheen
-                // shows through and the digit reads as printed on the stone.
-                ctx.fillStyle = isBlack ? 'rgba(244, 238, 228, 0.86)' : 'rgba(66, 51, 34, 0.82)';
                 ctx.font = `600 ${Math.max(14, Math.floor(CELL_SIZE * 0.42))}px 'Segoe UI', 'Yu Gothic UI', Meiryo, sans-serif`;
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText(moveText, sx, moveTextY);
+                if (stoneShadingEnabled) {
+                    // Translucent, ink-like numeral: no halo, so the stone's
+                    // sheen shows through and it reads as printed on the stone.
+                    ctx.fillStyle = isBlack ? 'rgba(244, 238, 228, 0.86)' : 'rgba(66, 51, 34, 0.82)';
+                    ctx.fillText(moveText, sx, moveTextY);
+                } else {
+                    // Flat stones: haloed numeral for crisp contrast.
+                    ctx.fillStyle = isBlack ? '#eee' : '#333';
+                    ctx.lineWidth = 2.5;
+                    ctx.strokeStyle = isBlack ? 'rgba(0, 0, 0, 0.55)' : 'rgba(255, 255, 255, 0.9)';
+                    ctx.strokeText(moveText, sx, moveTextY);
+                    ctx.fillText(moveText, sx, moveTextY);
+                }
             }
         }
 
@@ -1993,10 +2021,12 @@
         }
         toggleSideTabsActionBtn.textContent = text.sideTabs;
         toggleMoveNumbersActionBtn.textContent = text.moveNumbers;
+        if (toggleStoneShadingActionBtn) toggleStoneShadingActionBtn.textContent = text.stoneShading;
         toggleHintsActionBtn.textContent = text.hints;
         toggleHintsActionBtn.classList.toggle('active', showHints);
         toggleCoordsActionBtn.classList.toggle('active', showCoords);
         toggleMoveNumbersActionBtn.classList.toggle('active', showMoveNumbers);
+        if (toggleStoneShadingActionBtn) toggleStoneShadingActionBtn.classList.toggle('active', stoneShadingEnabled);
         toggleSideTabsActionBtn.classList.toggle('active', showSideTabs);
         cycleBoardThemeActionBtn.classList.remove('active');
     }
@@ -2174,6 +2204,18 @@
         updateUI();
         updateViewMenuButtons();
         saveAppSettingsToLocalStorage(buildAppSettings());
+    }
+
+    function toggleStoneShading() {
+        stoneShadingEnabled = !stoneShadingEnabled;
+        updateUI();
+        updateViewMenuButtons();
+        saveAppSettingsToLocalStorage(buildAppSettings());
+    }
+
+    function toggleStoneShadingFromMenu() {
+        closeControlMenus();
+        toggleStoneShading();
     }
 
     function openFileFromMenu() {
