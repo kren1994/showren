@@ -27,6 +27,7 @@ from typing import Iterator
 
 BOARD_SIZE = 15
 LAST = BOARD_SIZE - 1
+CENTER = BOARD_SIZE // 2
 DEFAULT_RULE = 'Taraguchi-10'
 
 
@@ -87,6 +88,65 @@ def canonical_info(grid: list[list[int]], move_count: int) -> tuple[str, int]:
             best_s, best_i = s, i
     assert best_s is not None
     return encode_board(best_s, next_color), best_i
+
+
+# ---- 珠型の正位置への正規化 --------------------------------------------
+# 中心を原点とした (u, v) 座標で D4（8 対称）を作用させる。v は下方向が正なので
+# 「上」= v が負、「右」= u が正。
+
+def _d4(u: int, v: int, i: int) -> tuple[int, int]:
+    match i:
+        case 0: return u, v        # 恒等
+        case 1: return -v, u       # 90° 回転
+        case 2: return -u, -v      # 180° 回転
+        case 3: return v, -u       # 270° 回転
+        case 4: return -u, v       # 縦軸鏡映
+        case 5: return u, -v       # 横軸鏡映
+        case 6: return v, u        # 主対角鏡映
+        case 7: return -v, -u      # 反対角鏡映
+    raise ValueError(f'bad d4 index: {i}')
+
+
+def normalize_moves(coords: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    """珠型の正位置へ手順全体を回転・反転する。
+
+    - 2 手目: 直接（縦横の隣）なら真上、間接（斜めの隣）なら右上へ
+    - 3 手目: 残る鏡映の自由度で右半分へ
+      3 手目が鏡映軸上のときは、4 手目以降で最初に軸から外れる手が
+      右半分に来る方を選ぶ（対称な棋譜が必ず同じ向きに揃うように）
+    """
+    if len(coords) < 2:
+        return coords
+
+    centered = [(x - CENTER, y - CENTER) for x, y in coords]
+    if centered[0] != (0, 0):
+        return coords  # 天元始まりでない棋譜は正規化しない
+
+    u2, v2 = centered[1]
+    if u2 == 0 or v2 == 0:
+        target = (0, -1)                      # 直接 → 真上
+        def side(u: int, v: int) -> int:      # 縦軸を境に右が正
+            return u
+    elif abs(u2) == abs(v2):
+        target = (1, -1)                      # 間接 → 右上
+        def side(u: int, v: int) -> int:      # 反対角を境に右（東）が正
+            return u + v
+    else:
+        return coords  # Taraguchi-10 では 2 手目は必ず中央 3x3 内
+
+    # 2 手目を目標へ写す変換はちょうど 2 つ（安定化群の位数が 2）
+    candidates = [i for i in range(8) if _d4(u2, v2, i) == target]
+
+    def first_side(index: int) -> int:
+        """3 手目以降で最初に鏡映軸から外れる手の符号。全て軸上なら 0。"""
+        for u, v in centered[2:]:
+            s = side(*_d4(u, v, index))
+            if s:
+                return s
+        return 0
+
+    best = max(candidates, key=first_side)  # 右半分（正）に来る方を採用
+    return [(u + CENTER, v + CENTER) for u, v in (_d4(u, v, best) for u, v in centered)]
 
 
 # ---- RIF の読み込み ----------------------------------------------------
@@ -278,6 +338,7 @@ def convert(
     rule_name: str = DEFAULT_RULE,
     wanted_players: list[str] | None = None,
     limit: int | None = None,
+    normalize: bool = True,
 ) -> tuple[dict, dict]:
     rules, players, tournaments, games = load_rif(rif_path)
 
@@ -287,7 +348,8 @@ def convert(
 
     wanted = [w.strip().lower() for w in (wanted_players or []) if w.strip()]
     builder = TreeBuilder()
-    stats = {'total': len(games), 'rule_matched': 0, 'player_matched': 0, 'converted': 0, 'skipped': 0}
+    stats = {'total': len(games), 'rule_matched': 0, 'player_matched': 0,
+             'converted': 0, 'skipped': 0, 'reoriented': 0}
 
     for game in games:
         if game['rule'] not in rule_ids:
@@ -313,6 +375,12 @@ def convert(
             print(f'  skip game {game["id"]}: 同一交点への重複着手', file=sys.stderr)
             stats['skipped'] += 1
             continue
+
+        if normalize:
+            normalized = normalize_moves(coords)
+            if normalized != coords:
+                stats['reoriented'] += 1
+            coords = normalized
 
         tournament = tournaments.get(game['tournament'])
         k1 = tournament_year(tournament)
@@ -340,10 +408,12 @@ def main() -> None:
                         help='対局者で絞り込む（姓/名/フルネーム、複数指定可）例: --player Kamiya')
     parser.add_argument('--rule', default=DEFAULT_RULE, help=f'ルール名（既定: {DEFAULT_RULE}）')
     parser.add_argument('--limit', type=int, default=None, help='変換する最大対局数')
+    parser.add_argument('--no-normalize', dest='normalize', action='store_false',
+                        help='珠型の正位置への回転・反転を行わない（実戦の座標のまま）')
     parser.add_argument('--pretty', action='store_true', help='読みやすく整形して出力')
     args = parser.parse_args()
 
-    data, stats = convert(args.rif, args.rule, args.player, args.limit)
+    data, stats = convert(args.rif, args.rule, args.player, args.limit, args.normalize)
 
     with open(args.out, 'w', encoding='utf-8') as f:
         if args.pretty:
@@ -357,6 +427,8 @@ def main() -> None:
     if args.player:
         print(f'  対局者一致       : {stats["player_matched"]:,} ({", ".join(args.player)})')
     print(f'  変換             : {stats["converted"]:,} 局（skip {stats["skipped"]}）')
+    if args.normalize:
+        print(f'  正位置へ回転/反転: {stats["reoriented"]:,} 局')
     print(f'  ノード           : {stats["nodes"]:,}')
     print(f'  局面（posDb）    : {stats["positions"]:,}')
     print(f'  局面ラベル       : {stats["labels"]:,}')
