@@ -618,7 +618,7 @@
     let tree = {}, posDb = {}, positionLabels = createEmptyPositionLabels();
     let currentNodeId = 'r', nextNodeId = 1;
     let showHints = true, showCoords = true, showMoveNumbers = true, showSideTabs = false, activeSideTab = 'comment';
-    let stoneShadingEnabled = true;
+    let stoneShadingEnabled = false;
     // Palette principle (from playren): the board is always a step darker than
     // the white stone (~#f7f4ee), the gradient span is narrow so stones read the
     // same everywhere, and every theme leans warm.
@@ -1073,7 +1073,7 @@
             showCoords: typeof settings.showCoords === 'boolean' ? settings.showCoords : true,
             showMoveNumbers: typeof settings.showMoveNumbers === 'boolean' ? settings.showMoveNumbers : true,
             showSideTabs: typeof settings.showSideTabs === 'boolean' ? settings.showSideTabs : false,
-            stoneShading: typeof settings.stoneShading === 'boolean' ? settings.stoneShading : true,
+            stoneShading: typeof settings.stoneShading === 'boolean' ? settings.stoneShading : false,
         };
         if (boardThemes.length > 0) {
             normalized.boardThemeIndex = ((normalized.boardThemeIndex % boardThemes.length) + boardThemes.length) % boardThemes.length;
