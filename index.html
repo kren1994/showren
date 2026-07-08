@@ -191,8 +191,10 @@
             white-space: nowrap; color: var(--text); user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
             transition: background 0.16s ease, transform 0.16s ease;
         }
-        .board-controls button:hover, .label-form-btn:hover { background: var(--tint-hover); }
-        .board-controls button:active { background: var(--tint-active); transform: scale(0.96); }
+        @media (hover: hover) {
+            .board-controls button:hover, .label-form-btn:hover { background: var(--tint-hover); }
+        }
+        .board-controls button:active, .label-form-btn:active { background: var(--tint-active); transform: scale(0.96); }
         .menu-icon-btn {
             width: 52px; height: 50px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
             color: var(--muted);
@@ -200,7 +202,7 @@
         /* Menu buttons run right up to their hairline; padding keeps the icon put. */
         .ctrl-left .menu-icon-btn { width: 56px; justify-content: flex-start; padding-left: 12px; }
         .ctrl-right .menu-icon-btn { width: 56px; justify-content: flex-end; padding-right: 12px; }
-        .menu-icon-btn:hover { color: var(--text); }
+        @media (hover: hover) { .menu-icon-btn:hover { color: var(--text); } }
         .menu-icon-btn.active { background: var(--accent-soft); color: var(--accent-strong); }
         .control-icon { display: inline-flex; width: 22px; height: 22px; }
         .control-icon svg { width: 100%; height: 100%; fill: currentColor; }
@@ -227,7 +229,8 @@
             display: flex; align-items: center; justify-content: space-between; gap: 10px;
         }
         .board-controls .control-menu-item[hidden] { display: none !important; }
-        .board-controls .control-menu-item:hover { background: var(--tint-hover); }
+        @media (hover: hover) { .board-controls .control-menu-item:hover { background: var(--tint-hover); } }
+        .board-controls .control-menu-item:active { background: var(--tint-active); }
         .board-controls .control-menu-item:focus,
         .board-controls .control-menu-item:focus-visible { outline: none; }
         .board-controls .control-menu-item::after { content: ''; width: 1em; flex: 0 0 1em; }
@@ -281,7 +284,8 @@
             cursor: pointer; user-select: none; -webkit-user-select: none;
             transition: background 0.16s ease, color 0.16s ease;
         }
-        .tab-btn:hover { color: var(--text); background: var(--tint-hover); }
+        @media (hover: hover) { .tab-btn:hover { color: var(--text); background: var(--tint-hover); } }
+        .tab-btn:active { background: var(--tint-active); }
         .tab-btn.active { background: var(--panel-strong); color: var(--text); box-shadow: 0 1px 3px var(--shadow-color); }
         .tab-panel { display: none; flex: 1 1 0; min-height: 0; padding-bottom: 0; }
         .tab-panel.active { display: flex; flex-direction: column; }
@@ -305,7 +309,7 @@
             min-height: 40px; height: 100%; box-sizing: border-box; background: var(--accent-soft); border: 0;
             color: var(--accent-strong); padding: 0 16px; align-self: stretch; font-weight: 700;
         }
-        .label-form-btn.primary:hover { background: var(--accent-soft); filter: brightness(1.04); }
+        @media (hover: hover) { .label-form-btn.primary:hover { background: var(--accent-soft); filter: brightness(1.04); } }
         .label-leaf-delete { background: transparent; }
         .label-error {
             display: none; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -333,7 +337,7 @@
             padding: 0; border: 0; background: transparent; color: var(--text); text-align: left;
             font: inherit; cursor: pointer;
         }
-        .label-item-main:hover { color: var(--accent-strong); background: transparent; }
+        @media (hover: hover) { .label-item-main:hover { color: var(--accent-strong); background: transparent; } }
         .label-item-actions {
             flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: flex-end; gap: 2px;
             margin-left: auto;
@@ -351,7 +355,8 @@
         .label-count { color: var(--faint); font-size: 11px; font-weight: 500; }
         .label-subtree { display: flex; flex-direction: column; gap: 2px; padding: 2px 0 0 14px; }
         .label-leaf-row { border-bottom: 1px solid var(--hairline); cursor: pointer; border-radius: 6px; }
-        .label-leaf-row:hover { background: var(--tint-hover); }
+        @media (hover: hover) { .label-leaf-row:hover { background: var(--tint-hover); } }
+        .label-leaf-row:active { background: var(--tint-active); }
         .label-leaf-row.current { color: var(--accent-strong); font-weight: 600; }
         .label-leaf-row.highlight { box-shadow: inset 2px 0 0 var(--accent); }
         .label-leaf-main { flex: 1 1 auto; display: flex; align-items: center; gap: 8px; min-width: 0; }
@@ -360,7 +365,7 @@
             padding: 0 4px; font-size: 16px; line-height: 1; background: transparent; border: 0;
             color: var(--faint); font-weight: 500; min-width: 1.2em; cursor: pointer;
         }
-        .label-action-btn:hover { background: transparent; color: var(--text); }
+        @media (hover: hover) { .label-action-btn:hover { background: transparent; color: var(--text); } }
         .label-action-btn[disabled] { visibility: hidden; pointer-events: none; }
         body.touch-main .label-register-panel { display: none; }
         body.touch-main .container { flex-wrap: wrap; }
