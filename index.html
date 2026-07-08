@@ -1880,12 +1880,17 @@
             if (showMoveNumbers) {
                 const moveText = node.m.toString();
                 const moveTextY = sy + Math.max(1, Math.round(CELL_SIZE * 0.03));
-                ctx.font = `600 ${Math.max(14, Math.floor(CELL_SIZE * 0.42))}px 'Segoe UI', 'Yu Gothic UI', Meiryo, sans-serif`;
+                // Scale down for 2-/3-digit numbers so high move counts fit the
+                // stone instead of overflowing (matches playren).
+                const textLen = moveText.length;
+                const baseRatio = textLen >= 3 ? 0.3 : (textLen === 2 ? 0.38 : 0.41);
+                const fontSize = Math.max(10, Math.floor(CELL_SIZE * baseRatio));
+                ctx.font = `600 ${fontSize}px 'Segoe UI', 'Yu Gothic UI', Meiryo, sans-serif`;
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 if (stoneShadingEnabled) {
                     // Translucent, ink-like numeral: no halo, so the stone's
                     // sheen shows through and it reads as printed on the stone.
-                    ctx.fillStyle = isBlack ? 'rgba(244, 238, 228, 0.86)' : 'rgba(66, 51, 34, 0.82)';
+                    ctx.fillStyle = isBlack ? 'rgba(244, 238, 228, 0.85)' : 'rgba(66, 51, 34, 0.8)';
                     ctx.fillText(moveText, sx, moveTextY);
                 } else {
                     // Flat stones: haloed numeral for crisp contrast.
