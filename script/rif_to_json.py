@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import re
 import sys
 import xml.etree.ElementTree as ET
 from typing import Iterator
@@ -195,6 +196,9 @@ def load_rif(path: str) -> tuple[dict, dict, dict, list[dict]]:
                 'round': elem.get('round', '') or '',
                 'black': elem.get('black', ''),
                 'white': elem.get('white', ''),
+                'swap': elem.get('swap', '') or '',
+                'alt': elem.get('alt', '') or '',
+                'info': (elem.findtext('info') or '').strip(),
                 'moves': moves,
             })
         if tag in ('game', 'player', 'tournament', 'rule'):
@@ -203,12 +207,117 @@ def load_rif(path: str) -> tuple[dict, dict, dict, list[dict]]:
     return rules, players, tournaments, games
 
 
+# ---- 開局のスワップ解析（誰が 1〜5 手目を置いたか）----------------------
+# RIF の swap 属性は 5 スロット。'R'（= '+'）がスワップ、'-' がスワップなし。
+# 最終的な黒白（black / white 属性）から逆順にスワップを巻き戻して各手の
+# 着手者を求める（nachirenjutools の analyzeTaraguchi と同じ手順）。
+# choice 2（10 題提示）はスワップ機会が 3 回しかないため、不足分は '-' で埋める。
+
+_INFO_BLACK = re.compile(r'[BbВв]\s*[=:]?\s*([0-9][0-9,\s]*)')
+
+
+def opening_owners(swap: str) -> dict[int, str] | None:
+    """1〜5 手目の着手者を最終的な色（'B' / 'W'）で返す。判定不能なら None。"""
+    raw = swap.strip()
+    if not raw or not set(raw) <= set('R-+'):
+        return None  # 空、または 'x' などの不明文字を含む
+    calc = raw.replace('R', '+').ljust(5, '-')[:5]
+
+    black, white = 'B', 'W'  # 最終的な色から出発し、後ろからスワップを巻き戻す
+    owners: dict[int, str] = {}
+    for i in range(5, -1, -1):
+        owners[i + 1] = black if (i + 1) % 2 == 1 else white
+        if i > 0 and calc[i - 1] == '+':
+            black, white = white, black
+    return {k: owners[k] for k in range(1, 6)}
+
+
+def info_swap_symbols(info: str) -> str:
+    """<info> が '+ + +' のようなスワップ記号列ならそれを返す（なければ空文字）。"""
+    text = info.strip()
+    if text and set(text) <= set('+- '):
+        return text.replace(' ', '')
+    return ''
+
+
+def owners_from_info(info: str) -> dict[int, str] | None:
+    """swap 属性が使えないとき、<info> の自由記述から着手者を推定する。
+
+    注意: <info> の 'B=...' は最終的な黒ではなく開局時の黒を指す例があり
+    （swap='R--R-' と 'R--RR' で同じ 'B:1245' が書かれている等）表記が揺れる。
+    swap 属性が全く無い局の最後の手段としてのみ使う。
+    """
+    text = info.strip()
+    if not text:
+        return None
+    symbols = info_swap_symbols(text)
+    if symbols:
+        return opening_owners(symbols)
+    match = _INFO_BLACK.search(text)
+    if not match:
+        return None
+    digits = {int(c) for c in re.sub(r'[^0-9]', '', match.group(1)) if c in '12345'}
+    if not digits:
+        return None
+    return {k: ('B' if k in digits else 'W') for k in range(1, 6)}
+
+
+def resolve_owners(swap: str, info: str) -> dict[int, str] | None:
+    """swap 属性と <info> のスワップ記号列のうち、記録が長い方を採用する。
+
+    choice 2（10 題提示）の局は swap 属性が 1 文字に切り詰められている一方、
+    <info> に '+ + +' と 3 回分が残っていることが多いため。
+    どちらも使えない場合のみ <info> の自由記述にフォールバックする。
+    """
+    attr = swap.strip() if set(swap.strip()) <= set('R-+') else ''
+    symbols = info_swap_symbols(info)
+    best = max((attr, symbols), key=len)
+    if best:
+        return opening_owners(best)
+    return owners_from_info(info)
+
+
+def is_ten_offer(alt: str) -> bool:
+    """alt に 10 題提示の痕跡（選ばれなかった候補が並ぶ）があるか。"""
+    raw = alt.strip()
+    if not raw or raw == '-':
+        return False
+    return len([x for x in raw.split(',') if x.strip()]) >= 7
+
+
+def build_comment(black_name: str, white_name: str,
+                  owners: dict[int, str] | None, ten_offer: bool) -> str:
+    """最終局面に載せるコメント。
+
+        B: Shunsuke Kamiya (125+)
+        W: Shoma Matsuda (34)
+
+    括弧内は「その人が 1〜5 手目のうち実際に置いた手番号」。'+' は 10 題提示。
+    スワップ情報が無く着手者を特定できない場合は括弧を付けない。
+    """
+    if owners is None:
+        return f'B: {black_name}\nW: {white_name}'
+
+    def cell(role: str) -> str:
+        digits = ''.join(str(k) for k in range(1, 6) if owners[k] == role)
+        plus = '+' if ten_offer and owners[5] == role else ''
+        return f'({digits}{plus})'
+
+    return f'B: {black_name} {cell("B")}\nW: {white_name} {cell("W")}'
+
+
 # ---- ラベル生成 --------------------------------------------------------
 
 def player_label(player: dict | None) -> str:
     if not player:
         return '?'
     return player['surname'] or player['name'] or '?'
+
+
+def player_full_name(player: dict | None) -> str:
+    if not player:
+        return '?'
+    return f"{player['name']} {player['surname']}".strip() or '?'
 
 
 def matches_player(player: dict | None, wanted: list[str]) -> bool:
@@ -265,7 +374,8 @@ class TreeBuilder:
             self._canon[node_id] = cached
         return cached
 
-    def add_game(self, moves: list[tuple[int, int]], label: tuple[str, str, str]) -> None:
+    def add_game(self, moves: list[tuple[int, int]], label: tuple[str, str, str],
+                 comment: str = '') -> None:
         grid = [[0] * BOARD_SIZE for _ in range(BOARD_SIZE)]
         node_id = 'r'
 
@@ -301,6 +411,11 @@ class TreeBuilder:
             return  # 着手が無い対局はラベルを付けない
 
         final_key, _ = self._canonical(node_id, grid, len(moves))
+        if comment:
+            # 最終局面へコメントを載せる。別の対局が同じ局面に到達済みなら先勝ち。
+            entry = self.pos_db.setdefault(final_key, {'c': '', 'l': {}, 'n': {}})
+            if not entry['c']:
+                entry['c'] = comment
         self._register_label(final_key, node_id, label)
 
     def _register_label(self, pos_key: str, rep: str, label: tuple[str, str, str]) -> None:
@@ -349,7 +464,8 @@ def convert(
     wanted = [w.strip().lower() for w in (wanted_players or []) if w.strip()]
     builder = TreeBuilder()
     stats = {'total': len(games), 'rule_matched': 0, 'player_matched': 0,
-             'converted': 0, 'skipped': 0, 'reoriented': 0}
+             'converted': 0, 'skipped': 0, 'reoriented': 0,
+             'with_owners': 0, 'ten_offer': 0}
 
     for game in games:
         if game['rule'] not in rule_ids:
@@ -387,7 +503,15 @@ def convert(
         k2 = (tournament['name'] if tournament else '') or '?'
         k3 = f'{format_round(game["round"])} {player_label(black)}-{player_label(white)}'
 
-        builder.add_game(coords, (k1, k2, k3))
+        owners = resolve_owners(game['swap'], game['info'])
+        ten_offer = is_ten_offer(game['alt'])
+        if owners is not None:
+            stats['with_owners'] += 1
+        if ten_offer:
+            stats['ten_offer'] += 1
+        comment = build_comment(player_full_name(black), player_full_name(white), owners, ten_offer)
+
+        builder.add_game(coords, (k1, k2, k3), comment)
         stats['converted'] += 1
         if limit and stats['converted'] >= limit:
             break
@@ -429,6 +553,8 @@ def main() -> None:
     print(f'  変換             : {stats["converted"]:,} 局（skip {stats["skipped"]}）')
     if args.normalize:
         print(f'  正位置へ回転/反転: {stats["reoriented"]:,} 局')
+    print(f'  着手者を特定     : {stats["with_owners"]:,} 局（括弧付きコメント）')
+    print(f'  10 題提示        : {stats["ten_offer"]:,} 局')
     print(f'  ノード           : {stats["nodes"]:,}')
     print(f'  局面（posDb）    : {stats["positions"]:,}')
     print(f'  局面ラベル       : {stats["labels"]:,}')
