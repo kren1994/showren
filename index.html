@@ -760,8 +760,17 @@
     const SAVE_LOCAL_STORAGE_KEY = 'showren-local-save-backup';
     const SETTINGS_LOCAL_STORAGE_KEY = 'showren-settings';
     let saveDbPromise = null;
-    const collapsedLabelGroups = new Set();
-    const collapsedLabelSubgroups = new Set();
+    // 既定はすべて閉。集合に入っているものだけを展開して表示する。
+    const expandedLabelGroups = new Set();
+    const expandedLabelSubgroups = new Set();
+
+    // 年を閉じたら配下の展開状態は捨てる（再展開時は閉じた状態で出す）
+    function collapseLabelGroup(k1) {
+        expandedLabelGroups.delete(k1);
+        for (const key of [...expandedLabelSubgroups]) {
+            if (JSON.parse(key)[0] === k1) expandedLabelSubgroups.delete(key);
+        }
+    }
 
     function createEmptyPositionLabels() {
         return { byPosKey: {}, byName: {} };
@@ -804,8 +813,8 @@
         highlightedLabelPosKey = null;
         focusedLabelItemKey = null;
         visiblePositionLabelItems = [];
-        collapsedLabelGroups.clear();
-        collapsedLabelSubgroups.clear();
+        expandedLabelGroups.clear();
+        expandedLabelSubgroups.clear();
         clearPositionLabelForm();
         clearPositionLabelError();
     }
@@ -1179,8 +1188,8 @@
     function expandLabelPath(posKey) {
         const entry = positionLabels.byPosKey[posKey];
         if (!entry) return;
-        collapsedLabelGroups.delete(entry.k1);
-        collapsedLabelSubgroups.delete(subgroupKey(entry.k1, entry.k2));
+        expandedLabelGroups.add(entry.k1);
+        expandedLabelSubgroups.add(subgroupKey(entry.k1, entry.k2));
     }
 
     function revealPositionLabel(posKey) {
@@ -1356,18 +1365,18 @@
         const nextK1 = promptRenameLabel(oldK1, '第1階層名を入力');
         if (!nextK1 || nextK1 === oldK1) return;
         const entries = getLabelEntriesForGroup(oldK1);
-        const oldCollapsed = collapsedLabelGroups.has(oldK1);
-        const collapsedK2Names = Array.from(new Set(
+        const oldExpanded = expandedLabelGroups.has(oldK1);
+        const expandedK2Names = Array.from(new Set(
             entries
                 .map(([, entry]) => entry.k2)
-                .filter((k2) => collapsedLabelSubgroups.has(subgroupKey(oldK1, k2)))
+                .filter((k2) => expandedLabelSubgroups.has(subgroupKey(oldK1, k2)))
         ));
         if (renameLabelEntries(entries, (entry) => ({ k1: nextK1, k2: entry.k2, k3: entry.k3 }), '第1階層名を変更しました')) {
-            collapsedLabelGroups.delete(oldK1);
-            if (oldCollapsed) collapsedLabelGroups.add(nextK1);
-            for (const k2 of collapsedK2Names) {
-                collapsedLabelSubgroups.delete(subgroupKey(oldK1, k2));
-                collapsedLabelSubgroups.add(subgroupKey(nextK1, k2));
+            expandedLabelGroups.delete(oldK1);
+            if (oldExpanded) expandedLabelGroups.add(nextK1);
+            for (const k2 of expandedK2Names) {
+                expandedLabelSubgroups.delete(subgroupKey(oldK1, k2));
+                expandedLabelSubgroups.add(subgroupKey(nextK1, k2));
             }
             focusedLabelItemKey = makeTreeItemKey('group', nextK1);
             renderPositionLabelsList(getCurrentPosKey());
@@ -1379,10 +1388,10 @@
         if (!nextK2 || nextK2 === oldK2) return;
         const entries = getLabelEntriesForSubgroup(k1, oldK2);
         const oldKey = subgroupKey(k1, oldK2);
-        const wasCollapsed = collapsedLabelSubgroups.has(oldKey);
+        const wasExpanded = expandedLabelSubgroups.has(oldKey);
         if (renameLabelEntries(entries, (entry) => ({ k1: entry.k1, k2: nextK2, k3: entry.k3 }), '第2階層名を変更しました')) {
-            collapsedLabelSubgroups.delete(oldKey);
-            if (wasCollapsed) collapsedLabelSubgroups.add(subgroupKey(k1, nextK2));
+            expandedLabelSubgroups.delete(oldKey);
+            if (wasExpanded) expandedLabelSubgroups.add(subgroupKey(k1, nextK2));
             focusedLabelItemKey = makeTreeItemKey('subgroup', k1, nextK2);
             renderPositionLabelsList(getCurrentPosKey());
         }
@@ -1403,9 +1412,9 @@
         const posKeys = getLabelEntriesForGroup(k1).map(([posKey]) => posKey);
         if (!posKeys.length) return false;
         if (!confirm(`第1階層「${k1}」を削除します。配下の ${posKeys.length} 件も削除されます。よろしいですか？`)) return false;
-        collapsedLabelGroups.delete(k1);
+        expandedLabelGroups.delete(k1);
         for (const [, entry] of getLabelEntriesForGroup(k1)) {
-            collapsedLabelSubgroups.delete(subgroupKey(k1, entry.k2));
+            expandedLabelSubgroups.delete(subgroupKey(k1, entry.k2));
         }
         deletePositionLabelsByPosKeys(posKeys);
         focusedLabelItemKey = null;
@@ -1418,7 +1427,7 @@
         const posKeys = getLabelEntriesForSubgroup(k1, k2).map(([posKey]) => posKey);
         if (!posKeys.length) return false;
         if (!confirm(`第2階層「${k1}/${k2}」を削除します。配下の ${posKeys.length} 件も削除されます。よろしいですか？`)) return false;
-        collapsedLabelSubgroups.delete(subgroupKey(k1, k2));
+        expandedLabelSubgroups.delete(subgroupKey(k1, k2));
         deletePositionLabelsByPosKeys(posKeys);
         focusedLabelItemKey = null;
         updateUI();
@@ -1444,7 +1453,7 @@
         const forceExpand = false;
         for (const year of yearKeys) {
             const group = treeData[year];
-            const yearExpanded = forceExpand || !collapsedLabelGroups.has(year);
+            const yearExpanded = forceExpand || expandedLabelGroups.has(year);
             const groupItemKey = makeTreeItemKey('group', year);
             visiblePositionLabelItems.push({ key: groupItemKey, type: 'group', k1: year, expanded: yearExpanded });
             const groupEl = document.createElement('div');
@@ -1458,7 +1467,7 @@
             mainButton.className = 'label-item-main';
             mainButton.addEventListener('click', () => {
                 focusedLabelItemKey = groupItemKey;
-                if (collapsedLabelGroups.has(year)) collapsedLabelGroups.delete(year); else collapsedLabelGroups.add(year);
+                if (expandedLabelGroups.has(year)) collapseLabelGroup(year); else expandedLabelGroups.add(year);
                 renderPositionLabelsList(getCurrentPosKey());
             });
 
@@ -1493,7 +1502,7 @@
                 for (const eventName of eventKeys) {
                     const subgroupData = group.children[eventName];
                     const sgKey = subgroupKey(year, eventName);
-                    const subgroupExpanded = forceExpand || !collapsedLabelSubgroups.has(sgKey);
+                    const subgroupExpanded = forceExpand || expandedLabelSubgroups.has(sgKey);
                     const subgroupItemKey = makeTreeItemKey('subgroup', year, eventName);
                     visiblePositionLabelItems.push({ key: subgroupItemKey, type: 'subgroup', k1: year, k2: eventName, expanded: subgroupExpanded, parentKey: groupItemKey });
                     const subgroupEl = document.createElement('div');
@@ -1507,7 +1516,7 @@
                     subMainButton.className = 'label-item-main';
                     subMainButton.addEventListener('click', () => {
                         focusedLabelItemKey = subgroupItemKey;
-                        if (collapsedLabelSubgroups.has(sgKey)) collapsedLabelSubgroups.delete(sgKey); else collapsedLabelSubgroups.add(sgKey);
+                        if (expandedLabelSubgroups.has(sgKey)) expandedLabelSubgroups.delete(sgKey); else expandedLabelSubgroups.add(sgKey);
                         renderPositionLabelsList(getCurrentPosKey());
                     });
 
@@ -1665,14 +1674,14 @@
     }
 
     function toggleGroupExpanded(k1, expanded) {
-        if (expanded) collapsedLabelGroups.add(k1); else collapsedLabelGroups.delete(k1);
+        if (expanded) collapseLabelGroup(k1); else expandedLabelGroups.add(k1);
         renderPositionLabelsList(getCurrentPosKey());
         scrollFocusedLabelItemIntoView();
     }
 
     function toggleSubgroupExpanded(k1, k2, expanded) {
         const key = subgroupKey(k1, k2);
-        if (expanded) collapsedLabelSubgroups.add(key); else collapsedLabelSubgroups.delete(key);
+        if (expanded) expandedLabelSubgroups.delete(key); else expandedLabelSubgroups.add(key);
         renderPositionLabelsList(getCurrentPosKey());
         scrollFocusedLabelItemIntoView();
     }
