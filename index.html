@@ -408,6 +408,10 @@
             .ctrl-left, .ctrl-right { gap: 0; }
             .ctrl-center { gap: 4px; }
             .menu-icon-btn { width: 44px; height: 42px; }
+            /* Fit the menu buttons to the 44px grid cells so the right (eye)
+               icon doesn't overflow into the bar's edge. File icon is
+               left-anchored so its position is unchanged. */
+            .ctrl-left .menu-icon-btn, .ctrl-right .menu-icon-btn { width: 44px; }
             .control-icon { width: 20px; height: 20px; }
             .nav-btn { height: 42px; }
             .nav-btn.branch { width: 3em; }
