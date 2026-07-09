@@ -1908,7 +1908,11 @@
                 const textLen = moveText.length;
                 const baseRatio = textLen >= 3 ? 0.3 : (textLen === 2 ? 0.38 : 0.41);
                 const fontSize = Math.max(10, Math.floor(CELL_SIZE * baseRatio));
-                ctx.font = `600 ${fontSize}px 'Segoe UI', 'Yu Gothic UI', Meiryo, sans-serif`;
+                // On narrow (phone) widths the board is shown small, so a bold
+                // weight + thick halo reads as too loud and competes with the
+                // stone pattern. Lighten both there; keep PC as-is.
+                const narrow = window.innerWidth <= 599;
+                ctx.font = `${narrow ? 400 : 600} ${fontSize}px 'Segoe UI', 'Yu Gothic UI', Meiryo, sans-serif`;
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 if (stoneShadingEnabled) {
                     // Translucent, ink-like numeral: no halo, so the stone's
@@ -1918,8 +1922,10 @@
                 } else {
                     // Flat stones: haloed numeral for crisp contrast.
                     ctx.fillStyle = isBlack ? '#eee' : '#333';
-                    ctx.lineWidth = 2.5;
-                    ctx.strokeStyle = isBlack ? 'rgba(0, 0, 0, 0.55)' : 'rgba(255, 255, 255, 0.9)';
+                    ctx.lineWidth = narrow ? 1.5 : 2.5;
+                    ctx.strokeStyle = isBlack
+                        ? (narrow ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.55)')
+                        : (narrow ? 'rgba(255, 255, 255, 0.72)' : 'rgba(255, 255, 255, 0.9)');
                     ctx.strokeText(moveText, sx, moveTextY);
                     ctx.fillText(moveText, sx, moveTextY);
                 }
