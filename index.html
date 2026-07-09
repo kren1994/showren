@@ -1906,13 +1906,16 @@
                 // Scale down for 2-/3-digit numbers so high move counts fit the
                 // stone instead of overflowing (matches playren).
                 const textLen = moveText.length;
-                const baseRatio = textLen >= 3 ? 0.3 : (textLen === 2 ? 0.38 : 0.41);
-                const fontSize = Math.max(10, Math.floor(CELL_SIZE * baseRatio));
                 // On narrow (phone) widths the board is shown small, so a bold
                 // weight + thick halo reads as too loud and competes with the
-                // stone pattern. Lighten both there; keep PC as-is.
+                // stone pattern. There, use a medium weight, ~90% size and a
+                // thinner halo; keep PC as-is.
                 const narrow = window.innerWidth <= 599;
-                ctx.font = `${narrow ? 400 : 600} ${fontSize}px 'Segoe UI', 'Yu Gothic UI', Meiryo, sans-serif`;
+                const baseRatio = narrow
+                    ? (textLen >= 3 ? 0.27 : (textLen === 2 ? 0.34 : 0.37))
+                    : (textLen >= 3 ? 0.3 : (textLen === 2 ? 0.38 : 0.41));
+                const fontSize = Math.max(10, Math.floor(CELL_SIZE * baseRatio));
+                ctx.font = `${narrow ? 500 : 600} ${fontSize}px 'Segoe UI', 'Yu Gothic UI', Meiryo, sans-serif`;
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 if (stoneShadingEnabled) {
                     // Translucent, ink-like numeral: no halo, so the stone's
