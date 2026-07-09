@@ -264,7 +264,8 @@
         }
         body:not(.touch-main) textarea:focus,
         body:not(.touch-main) textarea:focus-visible {
-            background-color: var(--panel-strong);
+            /* Keep the resting background — only add a ring — so focusing does
+               not flip the field to a near-white panel. */
             box-shadow: inset 0 0 0 1px var(--focus-ring);
         }
         .hidden-hint { color: transparent !important; caret-color: transparent !important; }
@@ -301,7 +302,7 @@
             transition: background-color 0.16s ease, box-shadow 0.16s ease;
         }
         .label-field input:focus {
-            background: var(--panel-strong); box-shadow: inset 0 0 0 1px var(--focus-ring);
+            box-shadow: inset 0 0 0 1px var(--focus-ring);
         }
         .label-form-actions { display: contents; }
         .label-form-btn { border-radius: 12px; }
@@ -436,6 +437,10 @@
             textarea { height: 100%; min-height: 0; margin: 0; width: 100%; line-height: 1.45; }
         }
         @media (min-width: 1200px) {
+            /* Center the composition in the window (like playren). min-height
+               keeps it vertically centered when it fits, and lets the page grow
+               and scroll normally if the viewport is shorter than the content. */
+            body { align-items: center; min-height: 100vh; box-sizing: border-box; }
             .container { flex-wrap: nowrap; }
             .left-pane { width: 620px; flex: 0 0 auto; }
             .right-pane { width: 416px; flex: 0 0 auto; }
