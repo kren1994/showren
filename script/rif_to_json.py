@@ -61,34 +61,52 @@ def inverse_transform(px: int, py: int, i: int) -> tuple[int, int]:
     raise ValueError(f'bad transform index: {i}')
 
 
-def encode_board(s: str, color: int) -> str:
-    """225 トリットを 5 トリット/バイトで 45 バイトに詰め base64url 化（60 文字）+ 手番色。"""
+CELLS = BOARD_SIZE * BOARD_SIZE
+
+
+def _symmetry_tables() -> list[tuple[int, ...]]:
+    """対称 i の盤面文字列位置 j に対応する「セル f が文字列のどこに写るか」の逆表。
+
+    showren は文字列位置 j = y*15+x に grid[tx][ty]（(tx,ty)=transform(x,y,i)）を
+    置く。ここでは着手のたびに 8 対称の盤面バイト列を並行更新したいので、
+    セル f = tx*15+ty → 文字列位置 j の逆引きを事前計算しておく。
+    """
+    invs = []
+    for i in range(8):
+        inv = [0] * CELLS
+        for y in range(BOARD_SIZE):
+            for x in range(BOARD_SIZE):
+                tx, ty = transform(x, y, i)
+                inv[tx * BOARD_SIZE + ty] = y * BOARD_SIZE + x
+        invs.append(tuple(inv))
+    return invs
+
+
+_INVS = _symmetry_tables()
+
+
+def encode_mirror(board: bytes, color: int) -> str:
+    """225 トリット（0/1/2 のバイト列）を 5 トリット/バイトで 45 バイトに詰め
+    base64url 化（60 文字）+ 手番色。showren の encodeBoard と同一の結果。"""
     data = bytearray(45)
     for i in range(45):
-        v = 0
-        for j in range(5):
-            v = v * 3 + (ord(s[i * 5 + j]) - 48)
-        data[i] = v
+        o = i * 5
+        data[i] = ((((board[o] * 3 + board[o + 1]) * 3 + board[o + 2]) * 3
+                    + board[o + 3]) * 3 + board[o + 4])
     b64 = base64.b64encode(bytes(data)).decode()
     return b64.replace('+', '-').replace('/', '_').rstrip('=') + str(color)
 
 
-def canonical_info(grid: list[list[int]], move_count: int) -> tuple[str, int]:
-    """8 対称のうち辞書順最小の盤面文字列を選び (キー, 変換インデックス) を返す。"""
+def canonical_from_mirrors(mirrors: list[bytearray], move_count: int) -> tuple[str, int]:
+    """8 対称の盤面バイト列から辞書順最小を選び (キー, 変換インデックス) を返す。
+
+    トリット値 0/1/2 の大小関係は文字 '0'/'1'/'2' と同順なので、バイト列比較が
+    showren の文字列比較と一致する。同値のときは最小の i（比較順で最初）を採用
+    するのも元実装と同じ。
+    """
     next_color = 1 if move_count % 2 == 0 else 2
-    best_s: str | None = None
-    best_i = 0
-    for i in range(8):
-        chars = []
-        for y in range(BOARD_SIZE):
-            for x in range(BOARD_SIZE):
-                tx, ty = transform(x, y, i)
-                chars.append(str(grid[tx][ty]))
-        s = ''.join(chars)
-        if best_s is None or s < best_s:
-            best_s, best_i = s, i
-    assert best_s is not None
-    return encode_board(best_s, next_color), best_i
+    best_i = min(range(8), key=mirrors.__getitem__)
+    return encode_mirror(mirrors[best_i], next_color), best_i
 
 
 # ---- 珠型の正位置への正規化 --------------------------------------------
@@ -125,18 +143,22 @@ def normalize_moves(coords: list[tuple[int, int]]) -> list[tuple[int, int]]:
 
     u2, v2 = centered[1]
     if u2 == 0 or v2 == 0:
-        target = (0, -1)                      # 直接 → 真上
+        # 縦横軸上 → 真上方向へ。隣接なら (0,-1) だが、変則的に離れた
+        # 2 手目（実データに存在する）でも方向一致で正規化できるようにする。
+        def hits_target(u: int, v: int) -> bool:
+            return u == 0 and v < 0
         def side(u: int, v: int) -> int:      # 縦軸を境に右が正
             return u
     elif abs(u2) == abs(v2):
-        target = (1, -1)                      # 間接 → 右上
+        def hits_target(u: int, v: int) -> bool:  # 斜め → 右上方向へ
+            return u > 0 and v < 0
         def side(u: int, v: int) -> int:      # 反対角を境に右（東）が正
             return u + v
     else:
-        return coords  # Taraguchi-10 では 2 手目は必ず中央 3x3 内
+        return coords  # 軸にも斜めにも乗らない 2 手目は正規化しない
 
-    # 2 手目を目標へ写す変換はちょうど 2 つ（安定化群の位数が 2）
-    candidates = [i for i in range(8) if _d4(u2, v2, i) == target]
+    # 2 手目の方向を目標へ写す変換はちょうど 2 つ（安定化群の位数が 2）
+    candidates = [i for i in range(8) if hits_target(*_d4(u2, v2, i))]
 
     def first_side(index: int) -> int:
         """3 手目以降で最初に鏡映軸から外れる手の符号。全て軸上なら 0。"""
@@ -164,12 +186,21 @@ def parse_coord(token: str) -> tuple[int, int]:
     return x, y
 
 
-def load_rif(path: str) -> tuple[dict, dict, dict, list[dict]]:
-    """rules / players / tournaments の辞書と、games のリストを返す。"""
+def load_rif(path: str, rule_name: str | None = None,
+             wanted: list[str] | None = None) -> tuple[dict, dict, dict, list[dict], int]:
+    """rules / players / tournaments の辞書と games のリスト、総対局数を返す。
+
+    rule_name / wanted を渡すと、明らかに一致しない対局をパース中に捨てて
+    メモリと時間を節約する（RIF は rules / players が games より先に並ぶ）。
+    先行定義がまだ無い場合はフィルタせずに残すだけなので、結果は変わらない。
+    最終的な絞り込みは convert() 側で従来どおり行う。
+    """
     rules: dict[str, str] = {}
     players: dict[str, dict] = {}
     tournaments: dict[str, dict] = {}
     games: list[dict] = []
+    total = 0
+    rule_ids: set[str] | None = None
 
     for event, elem in ET.iterparse(path, events=('end',)):
         tag = elem.tag
@@ -187,6 +218,20 @@ def load_rif(path: str) -> tuple[dict, dict, dict, list[dict]]:
                 'start': elem.get('start', '') or '',
             }
         elif tag == 'game':
+            total += 1
+            if rule_ids is None and rule_name and rules:
+                rule_ids = {rid for rid, name in rules.items() if name == rule_name}
+            # rule_ids が空集合（ルール名不一致）のときはフィルタしない:
+            # convert() が従来どおり候補一覧付きのエラーを出せるようにする。
+            if rule_ids and elem.get('rule', '') not in rule_ids:
+                elem.clear()
+                continue
+            if wanted and players and not (
+                matches_player(players.get(elem.get('black', '')), wanted)
+                or matches_player(players.get(elem.get('white', '')), wanted)
+            ):
+                elem.clear()
+                continue
             move_el = elem.find('move')
             moves = (move_el.text or '').split() if move_el is not None else []
             games.append({
@@ -204,7 +249,7 @@ def load_rif(path: str) -> tuple[dict, dict, dict, list[dict]]:
         if tag in ('game', 'player', 'tournament', 'rule'):
             elem.clear()
 
-    return rules, players, tournaments, games
+    return rules, players, tournaments, games, total
 
 
 # ---- 開局のスワップ解析（誰が 1〜5 手目を置いたか）----------------------
@@ -364,19 +409,23 @@ class TreeBuilder:
         self.by_pos_key: dict[str, dict] = {}
         self.by_name: dict[str, str] = {}
         self._canon: dict[str, tuple[str, int]] = {}
+        # (x, y) → 子ノード id の索引（tree['c'] の線形探索を避ける）
+        self._kids: dict[str, dict[tuple[int, int], str]] = {'r': {}}
         self.label_collisions = 0
         self.poskey_collisions = 0
 
-    def _canonical(self, node_id: str, grid: list[list[int]], move_count: int) -> tuple[str, int]:
+    def _canonical(self, node_id: str, mirrors: list[bytearray], move_count: int) -> tuple[str, int]:
         cached = self._canon.get(node_id)
         if cached is None:
-            cached = canonical_info(grid, move_count)
+            cached = canonical_from_mirrors(mirrors, move_count)
             self._canon[node_id] = cached
         return cached
 
     def add_game(self, moves: list[tuple[int, int]], label: tuple[str, str, str],
                  comment: str = '') -> None:
-        grid = [[0] * BOARD_SIZE for _ in range(BOARD_SIZE)]
+        # 8 対称の盤面バイト列を並行して持ち、着手のたびに全対称へ 1 セルずつ
+        # 書き込む。カノニカルキーはミラーの辞書順最小を取るだけで得られる。
+        mirrors = [bytearray(CELLS) for _ in range(8)]
         node_id = 'r'
 
         for index, (x, y) in enumerate(moves):
@@ -385,15 +434,13 @@ class TreeBuilder:
             color = 1 if move_no % 2 == 1 else 2
 
             # 親局面のカノニカル情報 → 次手ヒントをカノニカル座標で記録
-            key, canon_index = self._canonical(node_id, grid, index)
+            key, canon_index = self._canonical(node_id, mirrors, index)
             cx, cy = inverse_transform(x, y, canon_index)
             entry = self.pos_db.setdefault(key, {'c': '', 'l': {}, 'n': {}})
             entry['n'][f'{cx},{cy}'] = 1
 
-            child_id = next(
-                (cid for cid in parent['c'] if self.tree[cid]['x'] == x and self.tree[cid]['y'] == y),
-                None,
-            )
+            kids = self._kids[node_id]
+            child_id = kids.get((x, y))
             if child_id is None:
                 child_id = str(self.next_id)
                 self.next_id += 1
@@ -402,15 +449,19 @@ class TreeBuilder:
                     'o': color, 'm': move_no, 'x': x, 'y': y,
                 }
                 parent['c'].append(child_id)
+                kids[(x, y)] = child_id
+                self._kids[child_id] = {}
             parent.setdefault('l', child_id)
 
-            grid[x][y] = color
+            cell = x * BOARD_SIZE + y
+            for i in range(8):
+                mirrors[i][_INVS[i][cell]] = color
             node_id = child_id
 
         if node_id == 'r':
             return  # 着手が無い対局はラベルを付けない
 
-        final_key, _ = self._canonical(node_id, grid, len(moves))
+        final_key, _ = self._canonical(node_id, mirrors, len(moves))
         if comment:
             # 最終局面へコメントを載せる。別の対局が同じ局面に到達済みなら先勝ち。
             entry = self.pos_db.setdefault(final_key, {'c': '', 'l': {}, 'n': {}})
@@ -455,15 +506,15 @@ def convert(
     limit: int | None = None,
     normalize: bool = True,
 ) -> tuple[dict, dict]:
-    rules, players, tournaments, games = load_rif(rif_path)
+    wanted = [w.strip().lower() for w in (wanted_players or []) if w.strip()]
+    rules, players, tournaments, games, total = load_rif(rif_path, rule_name, wanted)
 
     rule_ids = {rid for rid, name in rules.items() if name == rule_name}
     if not rule_ids:
         raise SystemExit(f'ルールが見つかりません: {rule_name!r} (候補: {sorted(rules.values())})')
 
-    wanted = [w.strip().lower() for w in (wanted_players or []) if w.strip()]
     builder = TreeBuilder()
-    stats = {'total': len(games), 'rule_matched': 0, 'player_matched': 0,
+    stats = {'total': total, 'rule_matched': 0, 'player_matched': 0,
              'converted': 0, 'skipped': 0, 'reoriented': 0,
              'with_owners': 0, 'ten_offer': 0}
 
