@@ -896,9 +896,94 @@
         return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '') + color;
     }
 
+    // ---- 部分木の一括カノニカル計算 ------------------------------------
+    // 一手削除やラベルの逆引きは部分木の全ノードのカノニカルキーを必要と
+    // する。ノードごとに getCanonicalInfo（盤の再構築 + 8対称の文字列化
+    // ≈ 50μs）を呼ぶとフルDB規模（58万ノード）では数十秒固まるため、
+    // 8対称の盤面バイト列を並行して持ち、DFS で 1 ノードあたり 8 セルの
+    // 書き込みだけでキーを得る（script/rif_to_json.py と同じ方式）。
+
+    // セル (x*15+y) に置いた石が、対称 i の盤面文字列のどこに写るかの逆表。
+    const SYM_INV = (() => {
+        const invs = [];
+        for (let i = 0; i < 8; i++) {
+            const inv = new Array(BOARD_SIZE * BOARD_SIZE);
+            for (let y = 0; y < BOARD_SIZE; y++) {
+                for (let x = 0; x < BOARD_SIZE; x++) {
+                    const [tx, ty] = transform(x, y, i);
+                    inv[tx * BOARD_SIZE + ty] = y * BOARD_SIZE + x;
+                }
+            }
+            invs.push(inv);
+        }
+        return invs;
+    })();
+
+    function setMirrorStone(mirrors, x, y, color) {
+        const cell = x * BOARD_SIZE + y;
+        for (let i = 0; i < 8; i++) mirrors[i][SYM_INV[i][cell]] = color;
+    }
+
+    // トリット値 0/1/2 の大小は文字 '0'/'1'/'2' と同順なので、バイト列の
+    // 辞書順比較が getCanonicalInfo の文字列比較と一致する。
+    function smallestMirrorIndex(mirrors) {
+        let best = 0;
+        for (let i = 1; i < 8; i++) {
+            const a = mirrors[best], b = mirrors[i];
+            for (let j = 0; j < a.length; j++) {
+                if (b[j] !== a[j]) {
+                    if (b[j] < a[j]) best = i;
+                    break;
+                }
+            }
+        }
+        return best;
+    }
+
+    function encodeMirror(board, color) {
+        const bytes = new Uint8Array(45);
+        for (let i = 0; i < 45; i++) {
+            const o = i * 5;
+            bytes[i] = ((((board[o] * 3 + board[o + 1]) * 3 + board[o + 2]) * 3
+                + board[o + 3]) * 3 + board[o + 4]);
+        }
+        return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '') + color;
+    }
+
+    // startId 以下の各ノードについて visit(nodeId, posKey) を呼ぶ。
+    // visit が true を返したら走査を打ち切る。tree を変更しながら呼ばないこと。
+    function walkSubtreeCanonical(startId, visit) {
+        const mirrors = [];
+        for (let i = 0; i < 8; i++) mirrors.push(new Uint8Array(BOARD_SIZE * BOARD_SIZE));
+        for (let cur = tree[startId]; cur && cur.i !== 'r'; cur = tree[cur.p]) {
+            setMirrorStone(mirrors, cur.x, cur.y, cur.o);
+        }
+        const stack = [[startId, -1]]; // [ノードid, 次に降りる子の添字 (-1 = 未訪問)]
+        while (stack.length) {
+            const top = stack[stack.length - 1];
+            const node = tree[top[0]];
+            if (top[1] === -1) {
+                const nextColor = node.m % 2 === 0 ? 1 : 2;
+                const key = encodeMirror(mirrors[smallestMirrorIndex(mirrors)], nextColor);
+                if (visit(top[0], key)) return;
+                top[1] = 0;
+            }
+            if (top[1] < node.c.length) {
+                const child = tree[node.c[top[1]]];
+                top[1]++;
+                setMirrorStone(mirrors, child.x, child.y, child.o);
+                stack.push([child.i, -1]);
+            } else {
+                stack.pop();
+                if (node.i !== 'r') setMirrorStone(mirrors, node.x, node.y, 0);
+            }
+        }
+    }
+
     const canonicalCache = {};
     let cacheSize = 0;
-    const MAX_CACHE = 5000;
+    // フルDB（58万ノード）でも実用になるよう十分大きく取る（1件 ~150B）。
+    const MAX_CACHE = 50000;
 
     function clearCanonicalCache() {
         for (let key in canonicalCache) delete canonicalCache[key];
@@ -1682,10 +1767,13 @@
     }
 
     function findNodeIdByPosKey(targetPosKey) {
-        for (const nodeId of Object.keys(tree)) {
-            if (getCanonicalInfo(nodeId).key === targetPosKey) return nodeId;
-        }
-        return null;
+        let found = null;
+        walkSubtreeCanonical('r', (nodeId, key) => {
+            if (key !== targetPosKey) return false;
+            found = nodeId;
+            return true;
+        });
+        return found;
     }
 
     function updatePreferredPathToNode(targetNodeId) {
@@ -2452,11 +2540,13 @@
             delete posDb[pKey].n[`${cx},${cy}`];
         }
 
+        // 先にミラー走査で部分木全体の posDb を掃除してから、木を削除する。
         const deletedPosKeys = new Set();
-        const del = (id) => {
-            const { key: dKey } = getCanonicalInfo(id);
+        walkSubtreeCanonical(tid, (id, dKey) => {
             deletedPosKeys.add(dKey);
             delete posDb[dKey];
+        });
+        const del = (id) => {
             tree[id].c.forEach(del);
             delete tree[id];
         };
