@@ -440,7 +440,7 @@
             /* Center the composition in the window (like playren). min-height
                keeps it vertically centered when it fits, and lets the page grow
                and scroll normally if the viewport is shorter than the content. */
-            body { align-items: center; min-height: 100vh; box-sizing: border-box; }
+            body { align-items: center; min-height: 100vh; min-height: 100dvh; box-sizing: border-box; }
             .container { flex-wrap: nowrap; }
             .left-pane { width: 620px; flex: 0 0 auto; }
             .right-pane { width: 416px; flex: 0 0 auto; }
@@ -2084,9 +2084,18 @@
     applyLanguage();
     window.matchMedia('(pointer: coarse)').addEventListener('change', updateCommentEditable);
     window.matchMedia('(hover: none)').addEventListener('change', updateCommentEditable);
+    let lastNarrowWidth = window.innerWidth <= 599;
     window.addEventListener('resize', () => {
         updateTouchMainLayout();
         closeControlMenus();
+        // The move-number style is sampled at draw time (weight/size/halo differ
+        // at <=599px), so redraw when the boundary is crossed — e.g. rotating a
+        // phone — instead of leaving stale numerals until the next navigation.
+        const narrow = window.innerWidth <= 599;
+        if (narrow !== lastNarrowWidth) {
+            lastNarrowWidth = narrow;
+            updateUI();
+        }
     });
 
     canvas.addEventListener('click', (e) => {
