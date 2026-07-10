@@ -815,6 +815,7 @@
 
     function clearPositionLabelsState() {
         positionLabels = createEmptyPositionLabels();
+        markPositionLabelsChanged();
         highlightedLabelPosKey = null;
         focusedLabelItemKey = null;
         visiblePositionLabelItems = [];
@@ -946,12 +947,56 @@
         updatePositionLabelPanel(key);
     }
 
+    // ラベル集合の世代番号。ナビゲーション（updateUI）のたびに 2 万件超の
+    // ラベルから datalist とツリー DOM を全再構築すると 1 手 20ms 以上かかる
+    // ため、集合が変わった時だけ再構築し、手の移動ではハイライトの付け替え
+    // だけを行う。ラベルを変更する側は markPositionLabelsChanged() を呼ぶ。
+    let positionLabelsVersion = 1;
+    let labelDatalistsBuiltVersion = 0;
+    let labelsTreeRenderedVersion = 0;
+
+    function markPositionLabelsChanged() {
+        positionLabelsVersion++;
+    }
+
     function updatePositionLabelPanel(currentPosKey) {
         updatePositionLabelDatalists();
-        renderPositionLabelsList(currentPosKey);
+        if (labelsTreeRenderedVersion !== positionLabelsVersion) {
+            renderPositionLabelsList(currentPosKey);
+        } else {
+            updateLabelTreeMarkers(currentPosKey);
+        }
+    }
+
+    // ツリー DOM を作り直さずに、現在局面・ジャンプ先・フォーカスの印だけを
+    // 付け替える軽量パス。行が畳まれて DOM に無い場合は単に付かないだけ。
+    function updateLabelTreeMarkers(currentPosKey) {
+        const syncRowClass = (className, posKey) => {
+            const wanted = posKey && positionLabels.byPosKey[posKey] ? posKey : null;
+            const prev = positionLabelsTree.querySelector(`.label-leaf-row.${className}`);
+            if (prev && prev.dataset.posKey === wanted) return;
+            if (prev) prev.classList.remove(className);
+            if (!wanted) return;
+            const next = positionLabelsTree.querySelector(
+                `.label-leaf-row[data-pos-key="${CSS.escape(wanted)}"]`);
+            if (next) next.classList.add(className);
+        };
+        syncRowClass('current', currentPosKey);
+        syncRowClass('highlight', highlightedLabelPosKey);
+
+        const focusedEl = positionLabelsTree.querySelector('.label-item-focused');
+        const wantEl = focusedLabelItemKey
+            ? positionLabelsTree.querySelector(`[data-item-key="${CSS.escape(focusedLabelItemKey)}"]`)
+            : null;
+        if (focusedEl !== wantEl) {
+            if (focusedEl) focusedEl.classList.remove('label-item-focused');
+            if (wantEl) wantEl.classList.add('label-item-focused');
+        }
     }
 
     function updatePositionLabelDatalists() {
+        if (labelDatalistsBuiltVersion === positionLabelsVersion) return;
+        labelDatalistsBuiltVersion = positionLabelsVersion;
         const years = new Set();
         const events = new Set();
         for (const entry of Object.values(positionLabels.byPosKey)) {
@@ -1244,6 +1289,7 @@
 
         positionLabels.byPosKey[posKey] = { k1, k2, k3, rep: currentNodeId };
         positionLabels.byName[nameKey] = posKey;
+        markPositionLabelsChanged();
         highlightedLabelPosKey = posKey;
         focusedLabelItemKey = makeTreeItemKey('leaf', '', '', posKey);
         expandLabelPath(posKey);
@@ -1348,6 +1394,7 @@
             entry.k3 = next.k3;
             positionLabels.byName[buildLabelName(entry.k1, entry.k2, entry.k3)] = posKey;
         }
+        markPositionLabelsChanged();
 
         clearPositionLabelError();
         updateUI();
@@ -1441,6 +1488,7 @@
     }
 
     function renderPositionLabelsList(currentPosKey) {
+        labelsTreeRenderedVersion = positionLabelsVersion;
         positionLabelsTree.innerHTML = '';
         visiblePositionLabelItems = [];
         const treeData = buildFilteredPositionLabelTree();
@@ -1619,6 +1667,7 @@
         const nameKey = buildLabelName(entry.k1, entry.k2, entry.k3);
         delete positionLabels.byPosKey[posKey];
         delete positionLabels.byName[nameKey];
+        markPositionLabelsChanged();
         if (highlightedLabelPosKey === posKey) highlightedLabelPosKey = null;
         clearPositionLabelError();
         return true;
@@ -2537,6 +2586,7 @@
             currentNodeId = data.c;
             nextNodeId = data.n;
             positionLabels = normalizePositionLabels(data.pl);
+            markPositionLabelsChanged();
             highlightedLabelPosKey = null;
             clearPositionLabelError();
             clearCanonicalCache();
