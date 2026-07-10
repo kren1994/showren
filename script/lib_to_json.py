@@ -25,7 +25,7 @@ import json
 import sys
 
 from rif_to_json import (
-    BOARD_SIZE, CELLS, _INVS, inverse_transform, canonical_from_mirrors,
+    BOARD_SIZE, CELLS, _INVS, inverse_transform, canonical_from_mirrors, open_out,
 )
 
 MASK_TEXT = 0x01
@@ -308,7 +308,7 @@ def main() -> None:
     encoding = args.encoding or detect_encoding(root)
     data, stats = build_showren(root, encoding)
 
-    with open(args.out, 'w', encoding='utf-8') as f:
+    with open_out(args.out) as f:
         if args.pretty:
             json.dump(data, f, ensure_ascii=False, indent=2)
         else:

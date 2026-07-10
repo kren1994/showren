@@ -516,7 +516,7 @@
                     </div>
                 </div>
             </div>
-            <input type="file" id="fileInput" class="visually-hidden-file-input" accept=".json" tabindex="-1" aria-hidden="true">
+            <input type="file" id="fileInput" class="visually-hidden-file-input" accept=".json,.gz" tabindex="-1" aria-hidden="true">
         </div>
     </div>
     <div class="right-pane">
@@ -668,6 +668,7 @@
             positionLabelsAria: '局面ラベル',
             commentPlaceholder: '...',
             loadFailed: '読込失敗',
+            gzipUnsupported: 'このブラウザは .gz の読込に対応していません。新しめのブラウザで開いてください。',
             saveCompleted: '保存しました',
             exportCompleted: '書出完了',
             exportCompletedWithName: ({ name }) => `書出完了: ${name}`,
@@ -711,6 +712,7 @@
             positionLabelsAria: '局面标签',
             commentPlaceholder: '...',
             loadFailed: '读取失败',
+            gzipUnsupported: '此浏览器不支持读取 .gz 文件，请使用较新的浏览器。',
             saveCompleted: '已保存',
             exportCompleted: '已导出',
             exportCompletedWithName: ({ name }) => `已导出：${name}`,
@@ -2656,16 +2658,42 @@
     async function openFile() {
         if (window.showOpenFilePicker) {
             try {
-                const [handle] = await window.showOpenFilePicker({ types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
+                const [handle] = await window.showOpenFilePicker({ types: [{ description: 'JSON', accept: { 'application/json': ['.json'], 'application/gzip': ['.gz'] } }] });
                 fileHandle = handle;
                 const file = await handle.getFile();
-                loadFromText(await file.text());
+                await loadFromFile(file);
             } catch (e) {
                 if (e.name !== 'AbortError') alert(getCurrentTranslation().loadFailed);
             }
         } else {
             openFallbackFilePicker();
         }
+    }
+
+    // gzip（マジックバイト 1f 8b）なら解凍してから読む。拡張子でなく中身で
+    // 判定するので、.gz 名の素の JSON も、.json 名の gzip も正しく扱える。
+    async function loadFromFile(file) {
+        try {
+            const buffer = await file.arrayBuffer();
+            const bytes = new Uint8Array(buffer);
+            if (bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b) {
+                if (typeof DecompressionStream !== 'function') {
+                    alert(getCurrentTranslation().gzipUnsupported);
+                    return;
+                }
+                const stream = new Blob([buffer]).stream().pipeThrough(new DecompressionStream('gzip'));
+                loadFromText(await new Response(stream).text());
+            } else {
+                loadFromText(new TextDecoder().decode(buffer));
+            }
+        } catch (e) {
+            alert(getCurrentTranslation().loadFailed);
+        }
+    }
+
+    async function gzipTextToBlob(text) {
+        const stream = new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'));
+        return new Response(stream).blob();
     }
 
     function loadFromText(text) {
@@ -2758,7 +2786,12 @@
                 });
             }
             const writable = await fileHandle.createWritable();
-            await writable.write(json);
+            // .gz を開いて上書き保存したときは gzip のまま書き戻す
+            if (fileHandle.name.toLowerCase().endsWith('.gz') && typeof CompressionStream === 'function') {
+                await writable.write(await gzipTextToBlob(json));
+            } else {
+                await writable.write(json);
+            }
             await writable.close();
             showToast(getCurrentTranslation().exportCompletedWithName({ name: fileHandle.name }));
         } catch (e) {
@@ -2783,9 +2816,7 @@
         const file = e.target.files[0];
         if (!file) return;
         fileHandle = null;
-        const reader = new FileReader();
-        reader.onload = (ev) => loadFromText(ev.target.result);
-        reader.readAsText(file);
+        loadFromFile(file);
         e.target.value = '';
     });
 
@@ -2836,13 +2867,11 @@
         e.preventDefault();
         const file = e.dataTransfer.files[0];
         if (!file) return;
-        if (!file.name.endsWith('.json')) {
+        if (!file.name.endsWith('.json') && !file.name.endsWith('.gz')) {
             alert('JSONファイルをドロップしてください');
             return;
         }
-        const reader = new FileReader();
-        reader.onload = (ev) => loadFromText(ev.target.result);
-        reader.readAsText(file);
+        loadFromFile(file);
         fileHandle = null;
     });
 

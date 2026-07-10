@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import gzip
 import json
 import re
 import sys
@@ -575,6 +576,13 @@ def convert(
     return builder.build(), stats
 
 
+def open_out(path: str):
+    """出力先を開く。拡張子が .gz なら gzip 圧縮して書く（showren は解凍対応済み）。"""
+    if path.endswith('.gz'):
+        return gzip.open(path, 'wt', encoding='utf-8')
+    return open(path, 'w', encoding='utf-8')
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description='RenjuNet RIF → showren JSON 変換')
     parser.add_argument('rif', help='入力 RIF ファイル (例: renjunet_v10_20260214.rif)')
@@ -590,7 +598,7 @@ def main() -> None:
 
     data, stats = convert(args.rif, args.rule, args.player, args.limit, args.normalize)
 
-    with open(args.out, 'w', encoding='utf-8') as f:
+    with open_out(args.out) as f:
         if args.pretty:
             json.dump(data, f, ensure_ascii=False, indent=2)
         else:
