@@ -1,0 +1,24 @@
+{
+    "name": "showren 検討用ボード",
+    "short_name": "showren",
+    "description": "ブラウザで使える連珠の検討用ボード。棋譜の閲覧・編集、コメント入力、局面ラベルでの整理ができます。",
+    "lang": "ja",
+    "start_url": ".",
+    "scope": ".",
+    "display": "standalone",
+    "orientation": "any",
+    "background_color": "#f3efe6",
+    "theme_color": "#f3efe6",
+    "icons": [
+        {
+            "src": "icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
