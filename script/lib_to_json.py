@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 
 from rif_to_json import (
@@ -35,6 +36,8 @@ MASK_SIBLING = 0x80
 
 MAGIC = b'\xffRenLib\xff'
 HEADER_SIZE = 20
+# 改行・タブ以外の C0 制御文字と DEL（表示すると豆腐になるだけ）
+_CONTROL_CHARS = re.compile(r'[\x00-\x07\x0b\x0c\x0e-\x1f\x7f]')
 
 
 # ---- .lib の読み込み（中間表現の木を作る）------------------------------
@@ -188,8 +191,11 @@ def build_showren(root: LibNode, encoding: str) -> tuple[dict, dict]:
              'comment_collisions': 0, 'text_collisions': 0, 'spliced': 0}
 
     def decode(raw: bytes) -> str:
-        # 改行は \r\n → \n に正規化する（textarea 用）
-        return raw.decode(encoding, 'replace').replace('\r\n', '\n').strip()
+        # 改行は \r\n → \n に正規化する（textarea 用）。RenLib 旧形式は
+        # コメントを「タイトル 0x08 本文」で持つため 0x08 は改行に変換し、
+        # その他の制御文字は豆腐（□）表示になるだけなので除去する。
+        text = raw.decode(encoding, 'replace').replace('\r\n', '\n').replace('\x08', '\n')
+        return _CONTROL_CHARS.sub('', text).strip()
 
     def entry_for(key: str) -> dict:
         return pos_db.setdefault(key, {'c': '', 'l': {}, 'n': {}})
