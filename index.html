@@ -491,7 +491,7 @@
                         <button id="fileRenjuPortalActionBtn" class="control-menu-item" type="button" onclick="copyRenjuPortalLinkFromMenu()">RenjuPortal</button>
                         <button id="fileOpenActionBtn" class="control-menu-item" type="button" onclick="openFileFromMenu()">読込</button>
                         <button id="fileExportActionBtn" class="control-menu-item" type="button" onclick="exportKifuFromMenu()" hidden>書出</button>
-                        <button id="fileSaveActionBtn" class="control-menu-item" type="button" onclick="saveKifuWithConfirmFromMenu()">保存</button>
+                        <button id="fileSaveActionBtn" class="control-menu-item" type="button" onclick="saveKifuFromMenu()">保存</button>
                     </div>
                 </div>
             </div>
@@ -679,7 +679,6 @@
             exportUnavailable: 'この端末では書出しに対応していません',
             exportFailed: '書出しに失敗しました',
             localSaveFailed: '保存に失敗しました',
-            overwriteConfirm: '上書き保存しますか？',
             jsonFileDescription: 'JSONファイル',
             deleteCurrentNodeConfirm: '現在の手以降の変化を削除します。関連する局面ラベルも削除されます。よろしいですか？',
             deletedLabelsToast: ({ count }) => `局面ラベルを ${count} 件削除しました`,
@@ -723,7 +722,6 @@
             exportUnavailable: '此设备不支持导出分享',
             exportFailed: '导出失败',
             localSaveFailed: '保存失败',
-            overwriteConfirm: '要覆盖保存吗？',
             jsonFileDescription: 'JSON 文件',
             deleteCurrentNodeConfirm: '将删除当前手及其后的变化，同时删除相关局面标签。确定吗？',
             deletedLabelsToast: ({ count }) => `已删除 ${count} 个局面标签`,
@@ -2399,9 +2397,11 @@
         openFile();
     }
 
-    async function saveKifuWithConfirmFromMenu() {
+    // ブラウザ保存はスロット 1 つで、上書きで失うのは前回の保存だけ。
+    // 選択肢のない確認は出さない。
+    async function saveKifuFromMenu() {
         closeControlMenus();
-        await saveKifuWithConfirm();
+        await saveKifu();
     }
 
     async function exportKifuFromMenu() {
@@ -2812,9 +2812,6 @@
         }
     }
 
-    async function saveKifuWithConfirm() {
-        await saveKifu();
-    }
 
     fileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
