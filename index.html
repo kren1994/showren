@@ -497,6 +497,7 @@
                     <div id="fileMenu" class="control-menu-popup" hidden>
                         <button id="fileDeleteMoveActionBtn" class="control-menu-item" type="button" onclick="deleteCurrentNodeFromMenu()">一手削除</button>
                         <button id="fileRenjuPortalActionBtn" class="control-menu-item" type="button" onclick="copyRenjuPortalLinkFromMenu()">RenjuPortal</button>
+                        <button id="fileMergeActionBtn" class="control-menu-item" type="button" onclick="openMergeFileFromMenu()">マージ</button>
                         <button id="fileOpenActionBtn" class="control-menu-item" type="button" onclick="openFileFromMenu()">読込</button>
                         <button id="fileExportActionBtn" class="control-menu-item" type="button" onclick="exportKifuFromMenu()" hidden>書出</button>
                         <button id="fileSaveActionBtn" class="control-menu-item" type="button" onclick="saveKifuFromMenu()">保存</button>
@@ -529,6 +530,7 @@
                 </div>
             </div>
             <input type="file" id="fileInput" class="visually-hidden-file-input" accept=".json,.gz" tabindex="-1" aria-hidden="true">
+            <input type="file" id="mergeFileInput" class="visually-hidden-file-input" accept=".json,.gz" tabindex="-1" aria-hidden="true">
         </div>
     </div>
     <div class="right-pane">
@@ -600,6 +602,7 @@
     const languageActionBtn = document.getElementById('languageActionBtn');
     const fileDeleteMoveActionBtn = document.getElementById('fileDeleteMoveActionBtn');
     const fileRenjuPortalActionBtn = document.getElementById('fileRenjuPortalActionBtn');
+    const fileMergeActionBtn = document.getElementById('fileMergeActionBtn');
     const fileOpenActionBtn = document.getElementById('fileOpenActionBtn');
     const fileExportActionBtn = document.getElementById('fileExportActionBtn');
     const fileSaveActionBtn = document.getElementById('fileSaveActionBtn');
@@ -628,6 +631,7 @@
     const positionLabelErrorAction = document.getElementById('positionLabelErrorAction');
     const positionLabelsTree = document.getElementById('positionLabelsTree');
     const fileInput = document.getElementById('fileInput');
+    const mergeFileInput = document.getElementById('mergeFileInput');
     const registerPositionLabelBtn = document.getElementById('registerPositionLabelBtn');
     const labelInputs = [labelInput1, labelInput2, labelInput3];
     const boardControlsAnchor = document.createComment('board-controls-anchor');
@@ -658,6 +662,8 @@
             deleteMove: '一手削除',
             renjuPortal: 'RenjuPortal',
             renjuPortalCopied: 'RenjuPortal のリンクをコピーしました',
+            merge: 'マージ',
+            mergeCompleted: 'マージしました',
             open: '読込',
             export: '書出',
             save: '保存',
@@ -701,6 +707,8 @@
             deleteMove: '删除一手',
             renjuPortal: 'RenjuPortal',
             renjuPortalCopied: '已复制 RenjuPortal 链接',
+            merge: '合并',
+            mergeCompleted: '已合并',
             open: '读取',
             export: '导出',
             save: '保存',
@@ -2145,6 +2153,7 @@
     function updateFileMenuButtons() {
         const text = getCurrentTranslation();
         fileRenjuPortalActionBtn.textContent = text.renjuPortal;
+        fileMergeActionBtn.textContent = text.merge;
         fileOpenActionBtn.textContent = text.open;
         fileExportActionBtn.textContent = text.export;
         fileExportActionBtn.hidden = false;
@@ -2404,6 +2413,11 @@
     function openFileFromMenu() {
         closeControlMenus();
         openFile();
+    }
+
+    function openMergeFileFromMenu() {
+        closeControlMenus();
+        openMergeFile();
     }
 
     // ブラウザ保存はスロット 1 つで、上書きで失うのは前回の保存だけ。
@@ -2675,6 +2689,20 @@
         fileInput.click();
     }
 
+    function openFallbackMergeFilePicker() {
+        mergeFileInput.value = '';
+        if (typeof mergeFileInput.showPicker === 'function') {
+            try {
+                mergeFileInput.showPicker();
+                return;
+            } catch (error) {
+                // Fall back to click when showPicker is unavailable or blocked.
+            }
+        }
+        mergeFileInput.focus({ preventScroll: true });
+        mergeFileInput.click();
+    }
+
     async function openFile() {
         if (window.showOpenFilePicker) {
             try {
@@ -2690,24 +2718,38 @@
         }
     }
 
+    async function openMergeFile() {
+        if (window.showOpenFilePicker) {
+            try {
+                const [handle] = await window.showOpenFilePicker({ types: [{ description: 'JSON', accept: { 'application/json': ['.json'], 'application/gzip': ['.gz'] } }] });
+                await mergeFromFile(await handle.getFile());
+            } catch (e) {
+                if (e.name !== 'AbortError') alert(getCurrentTranslation().loadFailed);
+            }
+        } else {
+            openFallbackMergeFilePicker();
+        }
+    }
+
     // gzip（マジックバイト 1f 8b）なら解凍してから読む。拡張子でなく中身で
     // 判定するので、.gz 名の素の JSON も、.json 名の gzip も正しく扱える。
+    async function readJsonTextFromFile(file) {
+        const buffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        if (bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b) {
+            if (typeof DecompressionStream !== 'function') throw new Error('gzip unsupported');
+            const stream = new Blob([buffer]).stream().pipeThrough(new DecompressionStream('gzip'));
+            return new Response(stream).text();
+        }
+        return new TextDecoder().decode(buffer);
+    }
+
     async function loadFromFile(file) {
         try {
-            const buffer = await file.arrayBuffer();
-            const bytes = new Uint8Array(buffer);
-            if (bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b) {
-                if (typeof DecompressionStream !== 'function') {
-                    alert(getCurrentTranslation().gzipUnsupported);
-                    return;
-                }
-                const stream = new Blob([buffer]).stream().pipeThrough(new DecompressionStream('gzip'));
-                loadFromText(await new Response(stream).text(), file.name);
-            } else {
-                loadFromText(new TextDecoder().decode(buffer), file.name);
-            }
+            loadFromText(await readJsonTextFromFile(file), file.name);
         } catch (e) {
-            alert(getCurrentTranslation().loadFailed);
+            alert(e && e.message === 'gzip unsupported'
+                ? getCurrentTranslation().gzipUnsupported : getCurrentTranslation().loadFailed);
         }
     }
 
@@ -2732,6 +2774,145 @@
             updateUI();
         } catch (err) {
             alert(getCurrentTranslation().loadFailed);
+        }
+    }
+
+    function parseMergeData(text) {
+        const data = JSON.parse(text);
+        if (!data || typeof data !== 'object' || !data.t || typeof data.t !== 'object'
+            || !data.t.r || typeof data.t.r !== 'object') {
+            throw new Error('invalid JSON data');
+        }
+        validateSourceTree(data.t);
+        return data;
+    }
+
+    function isValidSourceMove(node) {
+        return node && Number.isInteger(node.x) && Number.isInteger(node.y)
+            && node.x >= 0 && node.x < BOARD_SIZE && node.y >= 0 && node.y < BOARD_SIZE;
+    }
+
+    function validateSourceTree(sourceTree) {
+        const visiting = new Set();
+        const visited = new Set();
+        const visit = (nodeId, isRoot) => {
+            if (visiting.has(nodeId)) throw new Error('cyclic tree');
+            if (visited.has(nodeId)) throw new Error('non-tree node');
+            const node = sourceTree[nodeId];
+            if (!node || !Array.isArray(node.c) || (!isRoot && !isValidSourceMove(node))) {
+                throw new Error('invalid tree node');
+            }
+            visiting.add(nodeId);
+            for (const childId of node.c) visit(childId, false);
+            visiting.delete(nodeId);
+            visited.add(nodeId);
+        };
+        visit('r', true);
+    }
+
+    function mergeSourceTree(sourceTree) {
+        const nodeIdMap = new Map();
+        const activeSourceIds = new Set();
+
+        const allocateNodeId = () => {
+            while (tree[String(nextNodeId)]) nextNodeId++;
+            return String(nextNodeId++);
+        };
+
+        const mergeNode = (targetId, sourceId) => {
+            if (activeSourceIds.has(sourceId)) throw new Error('cyclic tree');
+            const target = tree[targetId];
+            const source = sourceTree[sourceId];
+            if (!target || !source || !Array.isArray(source.c)) throw new Error('invalid tree node');
+
+            nodeIdMap.set(sourceId, targetId);
+            activeSourceIds.add(sourceId);
+            let preferredTargetId = null;
+            for (const sourceChildId of source.c) {
+                const sourceChild = sourceTree[sourceChildId];
+                if (!isValidSourceMove(sourceChild)) continue;
+
+                let targetChildId = target.c.find((id) => {
+                    const child = tree[id];
+                    return child && child.x === sourceChild.x && child.y === sourceChild.y;
+                });
+                if (!targetChildId) {
+                    const id = allocateNodeId();
+                    tree[id] = {
+                        i: id, p: targetId, c: [], x: sourceChild.x, y: sourceChild.y,
+                        o: target.m % 2 === 0 ? 1 : 2, m: target.m + 1,
+                    };
+                    target.c.push(id);
+                    targetChildId = id;
+                }
+                mergeNode(targetChildId, sourceChildId);
+                if (source.l === sourceChildId) preferredTargetId = targetChildId;
+            }
+            if ((!target.l || !tree[target.l]) && preferredTargetId) target.l = preferredTargetId;
+            activeSourceIds.delete(sourceId);
+        };
+
+        mergeNode('r', 'r');
+        return nodeIdMap;
+    }
+
+    function mergePositionData(sourcePosDb) {
+        if (!sourcePosDb || typeof sourcePosDb !== 'object') return;
+        for (const [posKey, sourceData] of Object.entries(sourcePosDb)) {
+            if (!sourceData || typeof sourceData !== 'object') continue;
+            const targetData = posDb[posKey] || (posDb[posKey] = { c: '', l: {}, n: {} });
+            if (!targetData.c && typeof sourceData.c === 'string' && sourceData.c) targetData.c = sourceData.c;
+            if (!targetData.l || typeof targetData.l !== 'object') targetData.l = {};
+            if (!targetData.n || typeof targetData.n !== 'object') targetData.n = {};
+            if (sourceData.l && typeof sourceData.l === 'object') {
+                for (const [cell, label] of Object.entries(sourceData.l)) {
+                    if (!Object.prototype.hasOwnProperty.call(targetData.l, cell)) targetData.l[cell] = label;
+                }
+            }
+            if (sourceData.n && typeof sourceData.n === 'object') {
+                for (const [cell, mark] of Object.entries(sourceData.n)) {
+                    if (!Object.prototype.hasOwnProperty.call(targetData.n, cell)) targetData.n[cell] = mark;
+                }
+            }
+        }
+    }
+
+    function mergePositionLabels(sourceLabels, nodeIdMap) {
+        const incoming = normalizePositionLabels(sourceLabels);
+        let added = false;
+        for (const [posKey, entry] of Object.entries(incoming.byPosKey)) {
+            const nameKey = buildLabelName(entry.k1, entry.k2, entry.k3);
+            if (positionLabels.byPosKey[posKey] || positionLabels.byName[nameKey]) continue;
+            const rep = nodeIdMap.get(entry.rep) || findNodeIdByPosKey(posKey);
+            if (!rep) continue;
+            positionLabels.byPosKey[posKey] = { ...entry, rep };
+            positionLabels.byName[nameKey] = posKey;
+            added = true;
+        }
+        if (added) markPositionLabelsChanged();
+    }
+
+    function mergeFromText(text) {
+        try {
+            const data = parseMergeData(text);
+            const nodeIdMap = mergeSourceTree(data.t);
+            mergePositionData(data.p);
+            clearCanonicalCache();
+            mergePositionLabels(data.pl, nodeIdMap);
+            clearPositionLabelError();
+            updateUI();
+            showToast(getCurrentTranslation().mergeCompleted);
+        } catch (err) {
+            alert(getCurrentTranslation().loadFailed);
+        }
+    }
+
+    async function mergeFromFile(file) {
+        try {
+            mergeFromText(await readJsonTextFromFile(file));
+        } catch (e) {
+            alert(e && e.message === 'gzip unsupported'
+                ? getCurrentTranslation().gzipUnsupported : getCurrentTranslation().loadFailed);
         }
     }
 
@@ -2836,6 +3017,12 @@
         if (!file) return;
         fileHandle = null;
         loadFromFile(file);
+        e.target.value = '';
+    });
+
+    mergeFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) mergeFromFile(file);
         e.target.value = '';
     });
 
