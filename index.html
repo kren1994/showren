@@ -281,8 +281,33 @@
         }
         .hidden-hint { color: transparent !important; caret-color: transparent !important; }
         .hidden-hint::placeholder { color: transparent !important; }
-        .guide { font-size: 13px; color: var(--muted); line-height: 1.6; background: transparent; padding: 4px 6px; border-radius: 0; border: 0; }
-        .guide b { color: var(--text); font-weight: 700; }
+        .help-entry { display: flex; justify-content: flex-end; min-height: 30px; }
+        .help-link {
+            display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px;
+            padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); cursor: pointer;
+        }
+        .help-link:hover { color: var(--text); background: var(--tint-hover); }
+        .help-link:active { background: var(--tint-active); }
+        .help-link-icon { width: 18px; height: 18px; }
+        .help-dialog-backdrop {
+            position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px;
+            box-sizing: border-box; background: var(--backdrop);
+        }
+        .help-dialog-backdrop[hidden] { display: none; }
+        .help-dialog-card {
+            width: min(100%, 400px); box-sizing: border-box; padding: 18px; border: 1px solid var(--hairline);
+            border-radius: 20px; background: var(--overlay); backdrop-filter: blur(10px);
+            box-shadow: 0 14px 32px var(--shadow-color); display: grid; gap: 14px;
+        }
+        .help-dialog-title { margin: 0; font-size: 16px; text-align: center; }
+        .help-shortcuts { color: var(--muted); font-size: 13px; line-height: 1.7; }
+        .help-shortcuts b { color: var(--text); font-weight: 700; }
+        .help-dialog-actions { display: flex; justify-content: center; }
+        .help-dialog-close {
+            padding: 8px 16px; border: 1px solid var(--hairline); border-radius: 10px;
+            background: transparent; color: var(--text); cursor: pointer; font: inherit;
+        }
+        .help-dialog-close:hover { background: var(--tint-hover); }
         .side-tabs {
             display: inline-flex; gap: 2px; align-self: flex-start;
             padding: 3px; border-radius: 999px; background: var(--fill-soft); border: 1px solid var(--hairline);
@@ -381,7 +406,6 @@
         .label-action-btn[disabled] { visibility: hidden; pointer-events: none; }
         body.touch-main .label-register-panel { display: none; }
         body.touch-main .container { flex-wrap: wrap; }
-        body.touch-main .guide { display: none; }
         body.bottom-controls-layout .board-controls {
             position: fixed; left: 50%; bottom: var(--bottom-controls-offset); transform: translateX(-50%);
             width: min(620px, calc(100vw - 16px)); margin: 0; padding: 6px 8px; border-radius: 16px;
@@ -444,7 +468,7 @@
             .board-container { padding-top: 10px; }
             .left-pane { flex: 0 0 auto; }
             .right-pane { flex: 1 1 0; min-height: 0; overflow: hidden; margin: 0 auto; width: 100%; max-width: 620px; padding: 0 0 10px; box-sizing: border-box; }
-            .guide { display: none; }
+            .help-entry { display: none; }
             textarea { height: 100%; min-height: 0; margin: 0; width: 100%; line-height: 1.45; }
         }
         @media (min-width: 1200px) {
@@ -534,10 +558,14 @@
         </div>
     </div>
     <div class="right-pane">
-        <div id="guideText" class="guide">
-            ・<b>Delete</b> で 1 手削除 / <b>Ctrl+F</b> で記号等表示切替<br>
-            ・<b>Ctrl+O</b> で読込 / <b>Ctrl+S</b> で書出 / <b>Ctrl+Shift+S</b> でブラウザに保存<br>
-            ・<b>Ctrl+;</b> でコメント入力切替 / <b>Ctrl+Shift+;</b>でタブ切替
+        <div class="help-entry">
+            <button id="helpOpenBtn" class="help-link" type="button" aria-label="使い方・ショートカットを開く">
+                <svg class="help-link-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"></circle>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+                </svg>
+            </button>
         </div>
         <div class="side-tabs" hidden>
             <button id="commentTabBtn" class="tab-btn active" type="button" onclick="setActiveSideTab('comment')">コメント</button>
@@ -574,6 +602,14 @@
             </div>
         </div>
     </div>
+</div>
+
+<div id="helpDialog" class="help-dialog-backdrop" hidden>
+    <section class="help-dialog-card" role="dialog" aria-modal="true" aria-labelledby="helpDialogTitle">
+        <h2 id="helpDialogTitle" class="help-dialog-title">使い方・ショートカット</h2>
+        <div id="helpShortcuts" class="help-shortcuts"></div>
+        <div class="help-dialog-actions"><button id="helpCloseBtn" class="help-dialog-close" type="button">閉じる</button></div>
+    </section>
 </div>
 
 <script>
@@ -615,7 +651,11 @@
     const toggleCoordsActionBtn = document.getElementById('toggleCoordsActionBtn');
     const toggleMoveNumbersActionBtn = document.getElementById('toggleMoveNumbersActionBtn');
     const toggleStoneShadingActionBtn = document.getElementById('toggleStoneShadingActionBtn');
-    const guideText = document.getElementById('guideText');
+    const helpOpenBtn = document.getElementById('helpOpenBtn');
+    const helpDialog = document.getElementById('helpDialog');
+    const helpDialogTitle = document.getElementById('helpDialogTitle');
+    const helpShortcuts = document.getElementById('helpShortcuts');
+    const helpCloseBtn = document.getElementById('helpCloseBtn');
     const sideTabs = document.querySelector('.side-tabs');
     const commentTabBtn = document.getElementById('commentTabBtn');
     const positionLabelsTabBtn = document.getElementById('positionLabelsTabBtn');
@@ -677,7 +717,10 @@
             moveNumbers: '手数',
             stoneShading: '石の陰影',
             hints: '記号等',
-            guideHtml: '・<b>Delete</b> で 1 手削除 / <b>Ctrl+F</b> で記号等表示切替<br>・<b>Ctrl+O</b> で読込 / <b>Ctrl+S</b> で書出 / <b>Ctrl+Shift+S</b> でブラウザに保存<br>・<b>Ctrl+;</b> でコメント入力切替 / <b>Ctrl+Shift+;</b>でタブ切替',
+            helpTitle: '使い方・ショートカット',
+            helpOpen: '使い方・ショートカットを開く',
+            helpClose: '閉じる',
+            helpShortcutsHtml: '・<b>Delete</b> で 1 手削除 / <b>Ctrl+F</b> で記号等表示切替<br>・<b>Ctrl+O</b> で読込 / <b>Ctrl+S</b> で書出 / <b>Ctrl+Shift+S</b> でブラウザに保存<br>・<b>Ctrl+;</b> でコメント入力切替 / <b>Ctrl+Shift+;</b>でタブ切替',
             commentTab: 'コメント',
             labelsTab: '索引',
             labelInput1Placeholder: '例：2026',
@@ -722,7 +765,10 @@
             moveNumbers: '手数',
             stoneShading: '棋子阴影',
             hints: '符号等',
-            guideHtml: '・按 <b>Ctrl+O</b> 读取 / 按 <b>Ctrl+S</b> 导出 / 按 <b>Ctrl+Shift+S</b> 保存到浏览器<br>・按 <b>Delete</b> 删除一手 / 按 <b>Ctrl+F</b> 切换符号显示<br>・按 <b>Ctrl+;</b> 切换评论输入 / 按 <b>Ctrl+Shift+;</b> 切换标签页',
+            helpTitle: '使用方法・快捷键',
+            helpOpen: '打开使用方法和快捷键',
+            helpClose: '关闭',
+            helpShortcutsHtml: '・按 <b>Ctrl+O</b> 读取 / 按 <b>Ctrl+S</b> 导出 / 按 <b>Ctrl+Shift+S</b> 保存到浏览器<br>・按 <b>Delete</b> 删除一手 / 按 <b>Ctrl+F</b> 切换符号显示<br>・按 <b>Ctrl+;</b> 切换评论输入 / 按 <b>Ctrl+Shift+;</b> 切换标签页',
             commentTab: '评论',
             labelsTab: '索引',
             labelInput1Placeholder: '例：2026',
@@ -2146,6 +2192,17 @@
         document.body.classList.remove('control-menu-open');
     }
 
+    function openHelpDialog() {
+        closeControlMenus();
+        helpDialog.hidden = false;
+        requestAnimationFrame(() => helpCloseBtn.focus());
+    }
+
+    function closeHelpDialog() {
+        helpDialog.hidden = true;
+        helpOpenBtn.focus();
+    }
+
     function getCurrentTranslation() {
         return translations[currentLanguage] || translations.ja;
     }
@@ -2170,7 +2227,11 @@
         languageActionBtn.dataset.value = text.languageShort;
         fileDeleteMoveActionBtn.textContent = text.deleteMove;
         updateFileMenuButtons();
-        guideText.innerHTML = text.guideHtml;
+        helpOpenBtn.setAttribute('aria-label', text.helpOpen);
+        helpDialog.setAttribute('aria-label', text.helpTitle);
+        helpDialogTitle.textContent = text.helpTitle;
+        helpShortcuts.innerHTML = text.helpShortcutsHtml;
+        helpCloseBtn.textContent = text.helpClose;
         commentTabBtn.textContent = text.commentTab;
         positionLabelsTabBtn.textContent = text.labelsTab;
         labelInput1.placeholder = text.labelInput1Placeholder;
@@ -3055,6 +3116,7 @@
     }
 
     document.addEventListener('click', (e) => {
+        if (!helpDialog.hidden && e.target === helpDialog) closeHelpDialog();
         if (!currentOpenControlMenu) return;
         const elements = getControlMenuElements(currentOpenControlMenu);
         if (elements.button.contains(e.target) || elements.menu.contains(e.target)) return;
@@ -3062,8 +3124,13 @@
     });
 
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeControlMenus();
+        if (e.key !== 'Escape') return;
+        if (!helpDialog.hidden) closeHelpDialog();
+        closeControlMenus();
     });
+
+    helpOpenBtn.addEventListener('click', openHelpDialog);
+    helpCloseBtn.addEventListener('click', closeHelpDialog);
 
     document.addEventListener('dragover', (e) => {
         e.preventDefault();
