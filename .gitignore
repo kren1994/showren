@@ -1,4 +1,5 @@
 .claude
+__pycache__/
 *.json
 *.rif
 *.lib
