@@ -1123,6 +1123,9 @@
             hintsRevealedForCurrentPosition = false;
             lastRenderedNodeId = currentNodeId;
         }
+        const hintsVisible = showHints || hintsRevealedForCurrentPosition;
+        commentArea.classList.toggle('hidden-hint', !hintsVisible);
+        commentArea.readOnly = isTouchMain() || !hintsVisible;
         ctx.clearRect(0, 0, LOGICAL_W, LOGICAL_H);
         const { key, index } = getCanonicalInfo(currentNodeId);
         const data = posDb[key] || { c: '', l: {}, n: {} };
@@ -2430,7 +2433,7 @@
 
     function updateCommentEditable() {
         document.body.classList.toggle('touch-main', isTouchMain());
-        commentArea.readOnly = isTouchMain() || !showHints;
+        commentArea.readOnly = isTouchMain() || !(showHints || hintsRevealedForCurrentPosition);
         commentArea.placeholder = isTouchMain() ? '' : getCurrentTranslation().commentPlaceholder;
         updateTouchMainLayout();
         updateFileMenuButtons();
@@ -2605,7 +2608,6 @@
     function toggleHints() {
         showHints = !showHints;
         hintsRevealedForCurrentPosition = false;
-        commentArea.classList.toggle('hidden-hint', !showHints);
         updateUI();
         updateCommentEditable();
         saveAppSettingsToLocalStorage(buildAppSettings());
