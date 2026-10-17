@@ -328,8 +328,10 @@
         .tab-panel.active { display: flex; flex-direction: column; }
         .comment-panel textarea { height: 100%; min-height: 0; }
         .quiz-panel { overflow-y: auto; }
-        .quiz-load-btn { align-self: flex-start; padding: 7px 12px; border: 1px solid var(--hairline); border-radius: 10px; background: var(--fill-soft); color: var(--text); font: inherit; cursor: pointer; }
-        @media (hover: hover) { .quiz-load-btn:hover { background: var(--tint-hover); } }
+        .quiz-actions { display: flex; gap: 8px; }
+        .quiz-load-btn, .quiz-random-btn { padding: 7px 12px; border: 1px solid var(--hairline); border-radius: 10px; background: var(--fill-soft); color: var(--text); font: inherit; cursor: pointer; }
+        @media (hover: hover) { .quiz-load-btn:hover:not(:disabled), .quiz-random-btn:hover:not(:disabled) { background: var(--tint-hover); } }
+        .quiz-random-btn:disabled { opacity: .45; cursor: default; }
         .quiz-list { display: flex; flex-direction: column; gap: 4px; }
         .quiz-item { width: 100%; padding: 9px 8px; border: 0; border-bottom: 1px solid var(--hairline); border-radius: 6px; background: transparent; color: var(--text); text-align: left; font: inherit; cursor: pointer; }
         @media (hover: hover) { .quiz-item:hover { background: var(--tint-hover); } }
@@ -610,7 +612,10 @@
             </div>
         </div>
         <div id="quizPanel" class="tab-panel quiz-panel">
-            <button id="loadQuizzesBtn" class="quiz-load-btn" type="button">読込</button>
+            <div class="quiz-actions">
+                <button id="loadQuizzesBtn" class="quiz-load-btn" type="button">読込</button>
+                <button id="randomQuizBtn" class="quiz-random-btn" type="button" disabled>ランダム出題</button>
+            </div>
             <div id="quizList" class="quiz-list" role="list"></div>
         </div>
     </div>
@@ -677,6 +682,7 @@
     const quizPanel = document.getElementById('quizPanel');
     const quizList = document.getElementById('quizList');
     const loadQuizzesBtn = document.getElementById('loadQuizzesBtn');
+    const randomQuizBtn = document.getElementById('randomQuizBtn');
     const labelInput1 = document.getElementById('labelInput1');
     const labelInput2 = document.getElementById('labelInput2');
     const labelInput3 = document.getElementById('labelInput3');
@@ -696,6 +702,8 @@
     let tree = {}, posDb = {}, positionLabels = createEmptyPositionLabels();
     let currentNodeId = 'r', nextNodeId = 1;
     let quizListRootNodeId = null, loadedQuizzes = null;
+    const RANDOM_QUIZ_HISTORY_LIMIT = 10;
+    let randomQuizHistory = [];
     let showHints = true, hintsRevealedForCurrentPosition = false, lastRenderedNodeId = null, showCoords = true, showMoveNumbers = true, showSideTabs = false, activeSideTab = 'comment';
     let stoneShadingEnabled = false;
     // Palette principle (from playren): the board is always a step darker than
@@ -742,6 +750,7 @@
             labelsTab: '索引',
             quizTab: 'クイズ',
             quizLoad: '読込',
+            quizRandom: 'ランダム出題',
             quizEmpty: 'クイズを読み込んでください。',
             quizSideBlack: '黒先',
             quizSideWhite: '白先',
@@ -795,6 +804,7 @@
             labelsTab: '索引',
             quizTab: '测验',
             quizLoad: '读取',
+            quizRandom: '随机出题',
             quizEmpty: '请读取测验题。',
             quizSideBlack: '黑先',
             quizSideWhite: '白先',
@@ -1232,7 +1242,7 @@
             if (!node) return;
             const posKey = getCanonicalInfo(nodeId).key;
             if (remainingQuizKeys.delete(posKey)) {
-                quizzes.push({ nodeId, side: node.m % 2 === 0 ? 1 : 2 });
+                quizzes.push({ nodeId, posKey, side: node.m % 2 === 0 ? 1 : 2 });
             }
             for (const childId of node.c || []) {
                 if (!remainingQuizKeys.size) break;
@@ -1246,6 +1256,7 @@
     function renderQuizList() {
         const text = getCurrentTranslation();
         quizList.replaceChildren();
+        randomQuizBtn.disabled = loadedQuizzes === null || loadedQuizzes.length === 0;
         if (loadedQuizzes === null || !loadedQuizzes.length) {
             const empty = document.createElement('div');
             empty.className = 'quiz-empty';
@@ -1260,29 +1271,51 @@
             button.type = 'button';
             button.className = 'quiz-item';
             button.textContent = `#${index + 1} ${quiz.side === 1 ? text.quizSideBlack : text.quizSideWhite}`;
-            button.addEventListener('click', () => {
-                currentNodeId = quiz.nodeId;
-                showHints = false;
-                hintsRevealedForCurrentPosition = false;
-                updateUI();
-                commentArea.classList.add('hidden-hint');
-                updateCommentEditable();
-                saveAppSettingsToLocalStorage(buildAppSettings());
-            });
+            button.addEventListener('click', () => showQuiz(quiz));
             row.appendChild(button);
             quizList.appendChild(row);
         });
     }
 
+    function showQuiz(quiz) {
+        currentNodeId = quiz.nodeId;
+        randomQuizHistory.push(quiz.posKey);
+        if (randomQuizHistory.length > RANDOM_QUIZ_HISTORY_LIMIT) randomQuizHistory.shift();
+        showHints = false;
+        hintsRevealedForCurrentPosition = false;
+        updateUI();
+        updateCommentEditable();
+        saveAppSettingsToLocalStorage(buildAppSettings());
+    }
+
     function loadQuizzesFromCurrentPosition() {
         quizListRootNodeId = currentNodeId;
         loadedQuizzes = collectQuizzes(quizListRootNodeId);
+        randomQuizHistory = [];
+        const currentPosKey = getCanonicalInfo(currentNodeId).key;
+        if (loadedQuizzes.some(quiz => quiz.posKey === currentPosKey)) randomQuizHistory.push(currentPosKey);
         renderQuizList();
+    }
+
+    function showRandomQuiz() {
+        if (!loadedQuizzes?.length) return;
+        const eligible = () => {
+            const recent = new Set(randomQuizHistory);
+            return loadedQuizzes.filter(quiz => !recent.has(quiz.posKey));
+        };
+        let candidates = eligible();
+        while (!candidates.length && randomQuizHistory.length) {
+            randomQuizHistory.shift();
+            candidates = eligible();
+        }
+        if (!candidates.length) candidates = loadedQuizzes;
+        showQuiz(candidates[Math.floor(Math.random() * candidates.length)]);
     }
 
     function invalidateQuizList() {
         quizListRootNodeId = null;
         loadedQuizzes = null;
+        randomQuizHistory = [];
         renderQuizList();
     }
 
@@ -2372,13 +2405,14 @@
         commentTabBtn.textContent = text.commentTab;
         positionLabelsTabBtn.textContent = text.labelsTab;
         quizTabBtn.textContent = text.quizTab;
+        loadQuizzesBtn.textContent = text.quizLoad;
+        randomQuizBtn.textContent = text.quizRandom;
         labelInput1.placeholder = text.labelInput1Placeholder;
         labelInput2.placeholder = text.labelInput2Placeholder;
         labelInput3.placeholder = text.labelInput3Placeholder;
         registerPositionLabelBtn.textContent = text.registerLabel;
         positionLabelsTree.setAttribute('aria-label', text.positionLabelsAria);
         updateCommentEditable();
-        loadQuizzesBtn.textContent = text.quizLoad;
         renderQuizList();
     }
 
@@ -2467,6 +2501,8 @@
         if (!showHints && !e.ctrlKey && !e.shiftKey && !e.altKey && !hintsRevealedForCurrentPosition) {
             hintsRevealedForCurrentPosition = true;
             updateUI();
+            setActiveSideTab('comment');
+            updateCommentEditable();
             return;
         }
 
@@ -2548,6 +2584,7 @@
     });
 
     loadQuizzesBtn.addEventListener('click', loadQuizzesFromCurrentPosition);
+    randomQuizBtn.addEventListener('click', showRandomQuiz);
 
     commentArea.addEventListener('keydown', (e) => {
         if (document.activeElement !== commentArea) return;
