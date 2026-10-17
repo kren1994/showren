@@ -679,7 +679,7 @@
 
     let tree = {}, posDb = {}, positionLabels = createEmptyPositionLabels();
     let currentNodeId = 'r', nextNodeId = 1;
-    let showHints = true, showCoords = true, showMoveNumbers = true, showSideTabs = false, activeSideTab = 'comment';
+    let showHints = true, hintsRevealedForCurrentPosition = false, lastRenderedNodeId = null, showCoords = true, showMoveNumbers = true, showSideTabs = false, activeSideTab = 'comment';
     let stoneShadingEnabled = false;
     // Palette principle (from playren): the board is always a step darker than
     // the white stone (~#f7f4ee), the gradient span is narrow so stones read the
@@ -1091,6 +1091,10 @@
     }
 
     function updateUI() {
+        if (lastRenderedNodeId !== currentNodeId) {
+            hintsRevealedForCurrentPosition = false;
+            lastRenderedNodeId = currentNodeId;
+        }
         ctx.clearRect(0, 0, LOGICAL_W, LOGICAL_H);
         const { key, index } = getCanonicalInfo(currentNodeId);
         const data = posDb[key] || { c: '', l: {}, n: {} };
@@ -2139,7 +2143,7 @@
             }
         }
 
-        if (showHints) {
+        if (showHints || hintsRevealedForCurrentPosition) {
             if (data.n) {
                 for (let key in data.n) {
                     let [cx, cy] = key.split(',').map(Number);
@@ -2324,6 +2328,11 @@
         const mouseX = (e.clientX - rect.left) * scaleX, mouseY = (e.clientY - rect.top) * scaleY;
         const px = Math.round((mouseX - MARGIN_L) / CELL_SIZE), py = Math.round((mouseY - MARGIN_T) / CELL_SIZE);
         if (px < 0 || px >= BOARD_SIZE || py < 0 || py >= BOARD_SIZE) return;
+        if (!showHints && !e.ctrlKey && !hintsRevealedForCurrentPosition) {
+            hintsRevealedForCurrentPosition = true;
+            updateUI();
+            return;
+        }
 
         const { key, index } = getCanonicalInfo(currentNodeId);
         const [cx, cy] = inverseTransform(px, py, index);
@@ -2434,6 +2443,7 @@
     positionLabelsTree.addEventListener('keydown', handlePositionLabelsTreeKeydown);
     function toggleHints() {
         showHints = !showHints;
+        hintsRevealedForCurrentPosition = false;
         commentArea.classList.toggle('hidden-hint', !showHints);
         updateUI();
         updateCommentEditable();
