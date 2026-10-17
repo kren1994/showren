@@ -720,7 +720,7 @@
             helpTitle: '使い方・ショートカット',
             helpOpen: '使い方・ショートカットを開く',
             helpClose: '閉じる',
-            helpShortcutsHtml: '・<b>Delete</b> で 1 手削除 / <b>Ctrl+F</b> で記号等表示切替<br>・<b>Ctrl+O</b> で読込 / <b>Ctrl+S</b> で書出 / <b>Ctrl+Shift+S</b> でブラウザに保存<br>・<b>Ctrl+;</b> でコメント入力切替 / <b>Ctrl+Shift+;</b>でタブ切替',
+            helpShortcutsHtml: '・<b>Delete</b> で 1 手削除 / <b>Ctrl+F</b> で記号等表示切替<br>・<b>Ctrl+クリック</b> で交点ラベル入力 / <b>Shift+クリック</b> で連番入力<br>・<b>Ctrl+O</b> で読込 / <b>Ctrl+S</b> で書出 / <b>Ctrl+Shift+S</b> でブラウザに保存<br>・<b>Ctrl+;</b> でコメント入力切替 / <b>Ctrl+Shift+;</b>でタブ切替',
             commentTab: 'コメント',
             labelsTab: '索引',
             labelInput1Placeholder: '例：2026',
@@ -768,7 +768,7 @@
             helpTitle: '使用方法・快捷键',
             helpOpen: '打开使用方法和快捷键',
             helpClose: '关闭',
-            helpShortcutsHtml: '・按 <b>Ctrl+O</b> 读取 / 按 <b>Ctrl+S</b> 导出 / 按 <b>Ctrl+Shift+S</b> 保存到浏览器<br>・按 <b>Delete</b> 删除一手 / 按 <b>Ctrl+F</b> 切换符号显示<br>・按 <b>Ctrl+;</b> 切换评论输入 / 按 <b>Ctrl+Shift+;</b> 切换标签页',
+            helpShortcutsHtml: '・按 <b>Ctrl+O</b> 读取 / 按 <b>Ctrl+S</b> 导出 / 按 <b>Ctrl+Shift+S</b> 保存到浏览器<br>・按 <b>Delete</b> 删除一手 / 按 <b>Ctrl+F</b> 切换符号显示<br>・<b>Ctrl+点击</b> 输入交点标签 / <b>Shift+点击</b> 输入连续编号<br>・按 <b>Ctrl+;</b> 切换评论输入 / 按 <b>Ctrl+Shift+;</b> 切换标签页',
             commentTab: '评论',
             labelsTab: '索引',
             labelInput1Placeholder: '例：2026',
@@ -2328,7 +2328,7 @@
         const mouseX = (e.clientX - rect.left) * scaleX, mouseY = (e.clientY - rect.top) * scaleY;
         const px = Math.round((mouseX - MARGIN_L) / CELL_SIZE), py = Math.round((mouseY - MARGIN_T) / CELL_SIZE);
         if (px < 0 || px >= BOARD_SIZE || py < 0 || py >= BOARD_SIZE) return;
-        if (!showHints && !e.ctrlKey && !hintsRevealedForCurrentPosition) {
+        if (!showHints && !e.ctrlKey && !e.shiftKey && !hintsRevealedForCurrentPosition) {
             hintsRevealedForCurrentPosition = true;
             updateUI();
             return;
@@ -2344,8 +2344,20 @@
             let newText = prompt('交点テキストを入力:', currentText);
             if (newText !== null) {
                 if (newText === '') delete posDb[key].l[`${cx},${cy}`]; else posDb[key].l[`${cx},${cy}`] = newText;
+                if (newText !== '') appendLabelToComment(newText);
                 updateUI();
             }
+            return;
+        }
+
+        if (e.shiftKey) {
+            if (!posDb[key]) posDb[key] = { c: '', l: {}, n: {} };
+            if (!posDb[key].l) posDb[key].l = {};
+            const numbers = Object.values(posDb[key].l).filter(value => /^\d+$/.test(String(value))).map(Number).filter(Number.isSafeInteger);
+            const newText = String(numbers.length ? Math.max(...numbers) + 1 : 1);
+            posDb[key].l[`${cx},${cy}`] = newText;
+            appendLabelToComment(newText);
+            updateUI();
             return;
         }
 
@@ -2378,6 +2390,13 @@
         tree[nid] = { i: nid, p: currentNodeId, c: [], x: px, y: py, o: node.m % 2 === 0 ? 1 : 2, m: node.m + 1 };
         node.c.push(nid); node.l = nid; currentNodeId = nid; updateUI();
     });
+
+    function appendLabelToComment(label) {
+        const separator = commentArea.value && !commentArea.value.endsWith('\n') ? '\n' : '';
+        commentArea.value += `${separator}${label}：`;
+        commentArea.dispatchEvent(new Event('input', { bubbles: true }));
+        commentArea.setSelectionRange(commentArea.value.length, commentArea.value.length);
+    }
 
     commentArea.addEventListener('input', (e) => {
         const { key } = getCanonicalInfo(currentNodeId);
