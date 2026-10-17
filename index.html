@@ -327,7 +327,7 @@
         .tab-panel { display: none; flex: 1 1 0; min-height: 0; padding-bottom: 0; }
         .tab-panel.active { display: flex; flex-direction: column; }
         .comment-panel textarea { height: 100%; min-height: 0; }
-        .quiz-panel { overflow-y: auto; }
+        .quiz-panel { overflow-y: auto; font-size: 13px; }
         .quiz-actions { display: flex; gap: 8px; }
         .quiz-load-btn, .quiz-random-btn { padding: 7px 12px; border: 1px solid var(--hairline); border-radius: 10px; background: var(--fill-soft); color: var(--text); font: inherit; cursor: pointer; }
         @media (hover: hover) { .quiz-load-btn:hover:not(:disabled), .quiz-random-btn:hover:not(:disabled) { background: var(--tint-hover); } }
@@ -2324,8 +2324,9 @@
                     let [cx, cy] = key.split(',').map(Number);
                     let [px, py] = transform(cx, cy, bestI);
                     let sx = MARGIN_L + px * CELL_SIZE, sy = MARGIN_T + py * CELL_SIZE;
-                    ctx.font = `bold ${Math.floor(CELL_SIZE*0.48)}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)'; ctx.lineWidth = 3.5; ctx.strokeText(data.l[key], sx, sy);
+                    const labelScale = window.innerWidth <= 599 ? 1 : 0.9;
+                    ctx.font = `bold ${Math.floor(CELL_SIZE*0.48*labelScale)}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)'; ctx.lineWidth = 3.5 * (window.innerWidth <= 599 ? 1 : 0.8); ctx.strokeText(data.l[key], sx, sy);
                     ctx.fillStyle = '#555'; ctx.fillText(data.l[key], sx, sy);
                 }
             }
