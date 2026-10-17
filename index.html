@@ -2522,7 +2522,7 @@
             let newText = prompt('交点テキストを入力:', currentText);
             if (newText !== null) {
                 if (newText === '') delete posDb[key].l[`${cx},${cy}`]; else posDb[key].l[`${cx},${cy}`] = newText;
-                if (newText !== '') appendLabelToComment(newText);
+                if (newText !== '' && newText !== 'c' && newText !== 'a') appendLabelToComment(newText);
                 updateUI();
             }
             return;
