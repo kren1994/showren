@@ -1337,7 +1337,8 @@
 
     function registerCurrentQuiz() {
         if (isQuizComment(commentArea.value)) return;
-        commentArea.value = `[Q] ${commentArea.value}`;
+        const existingComment = commentArea.value;
+        commentArea.value = `[Q] ${existingComment ? `\n${existingComment}` : ''}`;
         commentArea.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
