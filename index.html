@@ -2727,6 +2727,36 @@
         return `https://renjuportal.com/board?v=3&typ=g&mde=e&mvs=${moves}`;
     }
 
+    function importRenjuMoveSequence(sequence) {
+        const text = sequence.trim();
+        if (!text || text.length % 2 !== 0 || !/^[0-9a-e]+$/i.test(text)) return false;
+
+        const moves = [];
+        for (let i = 0; i < text.length; i += 2) {
+            const x = parseInt(text[i], 15);
+            const y = parseInt(text[i + 1], 15);
+            if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) return false;
+            moves.push([x, y]);
+        }
+
+        initGame();
+        for (const [x, y] of moves) {
+            const node = tree[currentNodeId];
+            const id = '' + nextNodeId++;
+            tree[id] = {
+                i: id, p: currentNodeId, c: [], x, y,
+                o: node.m % 2 === 0 ? 1 : 2, m: node.m + 1
+            };
+            node.c.push(id);
+            node.l = id;
+            currentNodeId = id;
+        }
+        updateUI();
+        invalidateQuizList();
+        showToast('手順を盤面に再現しました');
+        return true;
+    }
+
     async function copyTextToClipboard(text) {
         if (navigator.clipboard && window.isSecureContext) {
             await navigator.clipboard.writeText(text);
@@ -2904,6 +2934,17 @@
             case 'ArrowDown': e.preventDefault(); goToNextBranch(); break;
             case 'Delete': deleteCurrentNode(); break;
         }
+    });
+
+    document.addEventListener('paste', (e) => {
+        const target = e.target instanceof HTMLElement ? e.target : null;
+        if ((target && target.closest('input, textarea, select, [contenteditable="true"]'))
+                || document.activeElement === commentArea
+                || labelInputs.includes(document.activeElement)) return;
+
+        const text = e.clipboardData && e.clipboardData.getData('text/plain');
+        if (!text || !/^[\s]*[0-9a-e]+[\s]*$/i.test(text) || text.trim().length % 2 !== 0) return;
+        if (importRenjuMoveSequence(text)) e.preventDefault();
     });
 
     let fileHandle = null;
