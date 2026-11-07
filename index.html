@@ -2739,9 +2739,19 @@
             moves.push([x, y]);
         }
 
-        initGame();
+        currentNodeId = 'r';
         for (const [x, y] of moves) {
             const node = tree[currentNodeId];
+            const existingChildId = node.c.find((childId) => {
+                const child = tree[childId];
+                return child && child.x === x && child.y === y;
+            });
+            if (existingChildId) {
+                node.l = existingChildId;
+                currentNodeId = existingChildId;
+                continue;
+            }
+
             const id = '' + nextNodeId++;
             tree[id] = {
                 i: id, p: currentNodeId, c: [], x, y,
