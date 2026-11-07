@@ -2543,9 +2543,7 @@
         let node = tree[currentNodeId];
         for (let cid of node.c) {
             if (tree[cid].x === px && tree[cid].y === py) {
-                if (!posDb[key]) posDb[key] = { c: '', l: {}, n: {} };
-                if (!posDb[key].n) posDb[key].n = {};
-                posDb[key].n[`${cx},${cy}`] = 1;
+                markNextMove(key, cx, cy);
                 node.l = cid;
                 currentNodeId = cid;
                 updateUI();
@@ -2561,9 +2559,7 @@
             temp = tree[temp].p;
         }
 
-        if (!posDb[key]) posDb[key] = { c: '', l: {}, n: {} };
-        if (!posDb[key].n) posDb[key].n = {};
-        posDb[key].n[`${cx},${cy}`] = 1;
+        markNextMove(key, cx, cy);
 
         let nid = '' + nextNodeId++;
         tree[nid] = { i: nid, p: currentNodeId, c: [], x: px, y: py, o: node.m % 2 === 0 ? 1 : 2, m: node.m + 1 };
@@ -2727,6 +2723,12 @@
         return `https://renjuportal.com/board?v=3&typ=g&mde=e&mvs=${moves}`;
     }
 
+    function markNextMove(key, x, y) {
+        if (!posDb[key]) posDb[key] = { c: '', l: {}, n: {} };
+        if (!posDb[key].n) posDb[key].n = {};
+        posDb[key].n[`${x},${y}`] = 1;
+    }
+
     function importRenjuMoveSequence(sequence) {
         const text = sequence.trim();
         if (!text || text.length % 2 !== 0 || !/^[0-9a-e]+$/i.test(text)) return false;
@@ -2742,6 +2744,9 @@
         currentNodeId = 'r';
         for (const [x, y] of moves) {
             const node = tree[currentNodeId];
+            const { key, index } = getCanonicalInfo(currentNodeId);
+            const [canonicalX, canonicalY] = inverseTransform(x, y, index);
+            markNextMove(key, canonicalX, canonicalY);
             const existingChildId = node.c.find((childId) => {
                 const child = tree[childId];
                 return child && child.x === x && child.y === y;
