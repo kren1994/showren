@@ -726,6 +726,7 @@
             languageShort: '日',
             deleteMove: '一手削除',
             renjuPortal: 'RenjuPortal',
+            moveSequenceCopied: '\u624b\u9806\u3092\u30b3\u30d4\u30fc\u3057\u307e\u3057\u305f',
             renjuPortalCopied: 'RenjuPortal のリンクをコピーしました',
             merge: 'マージ',
             mergeCompleted: 'マージしました',
@@ -780,6 +781,7 @@
             languageShort: '中',
             deleteMove: '删除一手',
             renjuPortal: 'RenjuPortal',
+            moveSequenceCopied: '\u5df2\u590d\u5236\u8fde\u73e0\u624b\u987a',
             renjuPortalCopied: '已复制 RenjuPortal 链接',
             merge: '合并',
             mergeCompleted: '已合并',
@@ -2716,11 +2718,14 @@
         return value.toString(15);
     }
 
-    function buildRenjuPortalLink() {
-        const moves = getCurrentMovePath().map((node) => (
+    function buildRenjuMoveSequence() {
+        return getCurrentMovePath().map((node) => (
             encodeRenjuPortalMoveValue(node.x) + encodeRenjuPortalMoveValue(node.y)
         )).join('');
-        return `https://renjuportal.com/board?v=3&typ=g&mde=e&mvs=${moves}`;
+    }
+
+    function buildRenjuPortalLink() {
+        return `https://renjuportal.com/board?v=3&typ=g&mde=e&mvs=${buildRenjuMoveSequence()}`;
     }
 
     function markNextMove(key, x, y) {
@@ -2794,6 +2799,11 @@
         closeControlMenus();
         await copyTextToClipboard(buildRenjuPortalLink());
         showToast(getCurrentTranslation().renjuPortalCopied);
+    }
+
+    async function copyRenjuMoveSequenceFromShortcut() {
+        await copyTextToClipboard(buildRenjuMoveSequence());
+        showToast(getCurrentTranslation().moveSequenceCopied);
     }
 
     function deleteCurrentNodeFromMenu() {
@@ -2930,6 +2940,13 @@
             else if (key === 's') { e.preventDefault(); exportKifu(); }
             else if (key === 'o') { e.preventDefault(); openFile(); }
             else if (key === 'f') { e.preventDefault(); toggleHints(); }
+            else if (key === 'c'
+                    && document.activeElement !== positionLabelsTree
+                    && !labelInputs.includes(document.activeElement)
+                    && !(document.activeElement instanceof HTMLInputElement)) {
+                e.preventDefault();
+                copyRenjuMoveSequenceFromShortcut();
+            }
             return;
         }
         if (document.activeElement === positionLabelsTree) {
